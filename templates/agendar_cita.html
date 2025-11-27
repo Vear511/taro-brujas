@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header text-center bg-purple text-white">
+                    <h3>✨ Agendar Cita de Tarot</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5>Funcionalidad en Desarrollo</h5>
+                        <p>El sistema de agendamiento de citas estará disponible pronto.</p>
+                    </div>
+
+                    <div class="text-center">
+                        <p>Mientras tanto, puedes contactarnos directamente para agendar tu cita.</p>
+                        <a href="{% url 'home' %}" class="btn btn-purple">Volver al Inicio</a>
+                        <a href="{% url 'servicios' %}" class="btn btn-outline-purple">Ver Servicios</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-purple {
+    background: linear-gradient(135deg, #6f42c1, #8a63d2);
+}
+.btn-purple {
+    background: linear-gradient(135deg, #6f42c1, #8a63d2);
+    border: none;
+    color: white;
+}
+</style>
+{% endblock %}

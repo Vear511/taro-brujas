@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+    <!-- Título principal -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h1 class="hero-title">📅 Calendario de Disponibilidad</h1>
+            <p class="text-muted">Marca tus horarios disponibles para que los clientes puedan agendar citas.</p>
+        </div>
+    </div>
+
+    <!-- Resumen en cards -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Total Horarios</h5>
+                <p class="text-light display-6">{{ total_horarios }}</p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Disponibles</h5>
+                <p class="text-light display-6">{{ horarios_disponibles }}</p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Reservados</h5>
+                <p class="text-light display-6">{{ horarios_reservados }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendario -->
+    <div class="card-minimal p-4">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- FullCalendar CSS y JS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+
+    // Convertir horarios de Django a JS
+    var eventos = [
+        {% for horario in horarios %}
+        {
+            id: '{{ horario.id }}',
+            title: '{{ horario.estado|capfirst }}',
+            start: '{{ horario.fecha_inicio|date:"Y-m-d\\TH:i:s" }}',
+            end: '{{ horario.fecha_fin|date:"Y-m-d\\TH:i:s" }}',
+            color: '{{ "#28a745" if horario.estado == "disponible" else "#dc3545" }}'
+        }{% if (not forloop.last )%},{% endif %}
+        {% endfor %}
+    ];
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        locale: 'es',
+        allDaySlot: false,
+        slotMinTime: "08:00:00",
+        slotMaxTime: "20:00:00",
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'timeGridWeek,timeGridDay,listWeek'
+        },
+        events: eventos,
+        selectable: true,
+        select: function(info) {
+            let confirmar = confirm(`¿Deseas marcar este horario como disponible?\nDesde: ${info.startStr}\nHasta: ${info.endStr}`);
+            if(confirmar) {
+                fetch("{% url 'crear_horario' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        start: info.startStr,
+                        end: info.endStr
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success){
+                        alert('Horario guardado correctamente');
+                        calendar.addEvent({
+                            title: 'Disponible',
+                            start: info.startStr,
+                            end: info.endStr,
+                            color: '#28a745'
+                        });
+                    } else {
+                        alert('Error al guardar el horario');
+                    }
+                });
+            }
+        },
+        eventClick: function(info) {
+            if(info.event.title === "Disponible") {
+                let confirmar = confirm("¿Deseas eliminar este horario?");
+                if(confirmar){
+                    fetch("{% url 'eliminar_horario' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({ id: info.event.id })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data.success){
+                            info.event.remove();
+                            alert('Horario eliminado');
+                        } else {
+                            alert('Error al eliminar horario');
+                        }
+                    });
+                }
+            }
+        }
+    });
+
+    calendar.render();
+});
+</script>
+
+<style>
+.fc .fc-toolbar-title {
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+
+.fc {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.fc-event {
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.card-minimal {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+}
+</style>
+{% endblock %}
