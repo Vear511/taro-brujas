@@ -2,14 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import Http404
-
-# Modelos importados:
 from .models import Reporte
 from citas.models import Cita
 from usuarios.models import Usuario
-# Nota: Aquí no estaba importado el modelo Tarotista.
-
-# ==================== VISTAS BÁSICAS ====================
 
 def home(request):
     return render(request, 'home.html')
@@ -18,7 +13,6 @@ def servicios(request):
     return render(request, 'servicios.html')
 
 def sobre_nosotras(request):
-    # Esta es la versión original, sin lógica de consulta a la BD.
     return render(request, 'sobre_nosotras.html')
 
 
@@ -88,6 +82,7 @@ def crear_reporte(request):
     
     # GET: Obtener citas del tarotista para seleccionar
     citas = Cita.objects.filter(tarotista=tarotista, estado='completada')
+
 
     # Obtener todos los usuarios para el selector
     pacientes = Usuario.objects.all()
@@ -164,10 +159,3 @@ def eliminar_reporte(request, reporte_id):
         'reporte': reporte,
     }
     return render(request, 'confirmar_eliminar_reporte.html', context)
-    # En tu archivo views.py
-
-from django.shortcuts import render
-# Asegúrate de importar tu modelo Tarotista (y el modelo Usuario si no es el default)
-from .models import Tarotista  
-# Si el modelo de usuario está en otra app o es el modelo por defecto, ajústalo.
-
