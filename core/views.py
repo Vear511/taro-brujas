@@ -159,3 +159,50 @@ def eliminar_reporte(request, reporte_id):
         'reporte': reporte,
     }
     return render(request, 'confirmar_eliminar_reporte.html', context)
+
+# Importa tu modelo de Tarotista (asumiendo que se llama Tarotista en tu app)
+from .models import Tarotista 
+# Asumiendo que el modelo User está relacionado a Tarotista
+from django.contrib.auth import get_user_model
+User = get_user_model() 
+
+def obtener_tarotistas_para_mostrar(request):
+    """
+    Función que consulta la BD para obtener todos los usuarios 
+    que están registrados como tarotistas.
+    """
+    # Paso 1: Usar un filtro de existencia (lookup __isnull=False) o 
+    # usar un método de consulta para hacer un JOIN implícito.
+    # Esto filtra la tabla User para que SOLO se incluyan aquellos 
+    # que tienen un registro relacionado en la tabla Tarotista.
+    
+    # Opción 1 (Asumiendo que User tiene un 'tarotista_profile' relacionado)
+    # Lista de objetos User (que son Tarotistas)
+    tarotistas_queryset = User.objects.filter(tarotista__isnull=False).order_by('id')
+    
+    # Opción 2 (Si Tarotista hereda de User o es OneToOneField)
+    # tarotistas_queryset = Tarotista.objects.select_related('user').all()
+    
+    
+    # Paso 2: Extraer solo los campos que necesitas
+    # Usaremos .values() para obtener una lista de diccionarios, 
+    # simulando el formato de salida para la plantilla.
+    datos_tarotistas = tarotistas_queryset.values(
+        'id',             # 1
+        'username',       # 5
+        'first_name',     # 6
+        'last_name',      # 7
+        'email',          # 8
+        'rut',            # 17 (Asumiendo que 'rut' es un campo custom en User)
+        'avatar'          # 15
+    )
+    
+    # Si Tarotista tiene campos de bio o especialidad, necesitarías hacer un .select_related
+    # y extraer esos campos también.
+    
+    # Paso 3: Renderizar la plantilla
+    context = {
+        'tarotistas': list(datos_tarotistas) # Pasamos la lista de diccionarios a la plantilla
+    }
+    
+    return render_template('about_us.html', **context)
