@@ -27,6 +27,8 @@ def home(request):
 def servicios(request):
     return render(request, 'servicios.html')
 
+# ... (código de imports)
+
 def sobre_nosotras(request):
     """
     Vista principal de "Sobre Nosotras". Carga dinámicamente
@@ -34,44 +36,30 @@ def sobre_nosotras(request):
     """
     
     # 1. Consulta eficiente: Hace un JOIN de Tarotista a Usuario.
-    # Usamos 'usuario' para la relación, basándonos en tu modelo Usuario.
-    try:
-        perfiles_tarotistas = Tarotista.objects.select_related('usuario').all()
-    except Exception as e:
-        # Esto es un debug de seguridad si la relación falla o la tabla no existe
-        messages.error(request, f'Error de BD al cargar tarotistas: {str(e)}')
-        perfiles_tarotistas = [] # Evita que el bucle falle
+    perfiles_tarotistas = Tarotista.objects.select_related('usuario').all()
 
     tarotistas_data = []
     
     for perfil in perfiles_tarotistas:
+        user_obj = perfil.usuario
         
-        # 1A. Obtenemos el objeto Usuario relacionado
-        user_obj = perfil.usuario 
-        
-        # 1B. Filtro de seguridad: Omite usuarios inactivos o sin nombre
+        # Filtro: Solo usuarios activos y con nombre
         if not user_obj.is_active or not user_obj.first_name:
              continue 
         
-        # 1C. Formateamos los datos
+        # Formateamos los datos (como ya lo hiciste)
         tarotistas_data.append({
-            # Datos de usuarios_usuario
-            'id': user_obj.id,
-            'username': user_obj.username,
+            # ... (Datos del usuario)
             'first_name': user_obj.first_name,
-            'last_name': user_obj.last_name,
-            'email': user_obj.email,
-            # Manejo de avatar: usa .url si existe, sino un placeholder
+            # ...
             'avatar': user_obj.avatar.url if user_obj.avatar else '/static/default/avatar.jpg',
-            'rut': user_obj.rut,
-            
-            # Datos de tarotistas_tarotista (perfil)
+            # ... (Datos del perfil Tarotista)
             'bio': perfil.bio,
             'especialidad': perfil.especialidad,
         })
         
     context = {
-        'tarotistas': tarotistas_data
+        'tarotistas': tarotistas_data  # Esta es la variable que usa el HTML
     }
     
     return render(request, 'sobre_nosotras.html', context)
