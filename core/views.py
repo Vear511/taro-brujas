@@ -161,51 +161,56 @@ def eliminar_reporte(request, reporte_id):
     return render(request, 'confirmar_eliminar_reporte.html', context)
 
 # En tu archivo views.py
-
-# Asegúrate de importar tus modelos
+# En tu archivo views.py
 from django.shortcuts import render
-from .models import Tarotista # Tu modelo para tarotistas_tarotista
+# Asegúrate de importar tu modelo Tarotista
+from .models import Tarotista 
 
 def sobre_nosotras_view(request):
     """
-    Obtiene todos los perfiles de tarotistas y, en una sola consulta,
-    obtiene los datos del usuario relacionado (JOIN implícito).
+    Consulta la tabla Tarotista (tarotistas_tarotista) y 
+    usa la relación 'user' para acceder al ID en la tabla User (usuarios_usuario).
     """
     
-    # 1. Consulta eficiente: 
-    # select_related('user') realiza un JOIN para obtener los datos de usuarios_usuario
-    # junto con los de tarotistas_tarotista en una sola consulta.
+    # 1. Consulta eficiente:
+    # select_related('user') asegura que los datos del usuario 
+    # se obtengan en la misma consulta que los perfiles de tarotista (el JOIN).
     perfiles_tarotistas = Tarotista.objects.select_related('user').all()
     
-    # 2. Formatear los datos para la plantilla
     tarotistas_data = []
     
     for perfil in perfiles_tarotistas:
-        # 'perfil' es el registro de tarotistas_tarotista
-        # 'perfil.user' es el registro de usuarios_usuario
-        user = perfil.user 
-
-        # Asegúrate de que el usuario esté activo y no sea un administrador/staff si es necesario
-        if not user.is_active:
+        # El objeto 'perfil' es un registro de tarotistas_tarotista
+        # Accedemos a la relación: perfil.user
+        
+        # 1A. Obtenemos el objeto User relacionado (usuarios_usuario)
+        user_obj = perfil.user 
+        
+        # Opcional: Filtra usuarios inactivos o sin datos
+        if not user_obj.is_active or not user_obj.first_name:
              continue 
-
+        
+        # 1B. Usamos el ID del perfil y lo buscamos en el objeto User.
+        # En Python, simplemente accedemos a las propiedades: user_obj.id, user_obj.username, etc.
+        
         tarotistas_data.append({
-            # Datos del modelo usuarios_usuario (Columnas 1, 5, 6, 7, 8, 15, 17)
-            'id': user.id,
-            'username': user.username,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'email': user.email,
-            'avatar': user.avatar.url if user.avatar else '/static/default/path.jpg', # Manejo de imágenes
-            'rut': user.rut, # Asumiendo que es un campo del modelo User
+            # Datos de usuarios_usuario (usando la relación user_obj)
+            'id': user_obj.id,
+            'username': user_obj.username,
+            'first_name': user_obj.first_name,
+            'last_name': user_obj.last_name,
+            'email': user_obj.email,
+            # Asegúrate de usar .url para campos File/ImageField
+            'avatar': user_obj.avatar.url if user_obj.avatar else '/static/default/avatar.jpg',
+            'rut': user_obj.rut, 
             
-            # Datos de la tabla tarotistas_tarotista (ej: la bio, la especialidad, etc.)
-            'bio': perfil.bio, # Asumiendo que 'bio' es el campo de descripción en el perfil
-            'especialidad': perfil.especialidad if hasattr(perfil, 'especialidad') else None,
+            # Datos de tarotistas_tarotista (usando el objeto perfil)
+            'bio': perfil.bio, 
+            'especialidad': perfil.especialidad,
         })
         
     context = {
-        'tarotistas': tarotistas_data # Esta es la lista que se pasa a la plantilla
+        'tarotistas': tarotistas_data 
     }
     
     return render(request, 'about_us.html', context)
