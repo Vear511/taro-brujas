@@ -9,35 +9,23 @@
                 <h1 class="hero-title">Sobre Nosotras</h1>
             </div>
             
-            ---
-
             <div class="card-minimal mb-5">
-                <div class="text-center mb-4">
-                    <h3 class="text-gold">Nuestra Misión</h3>
-                </div>
-                <p class="text-light text-center">
-                    Nuestra misión es ofrecer un espacio de guía espiritual y autoconocimiento a través del tarot y otras prácticas esotéricas, entregando a cada persona una experiencia clara, cercana y respetuosa que le ayude a comprender su presente y tomar decisiones con confianza.
-                </p>
+                <div class="text-center mb-4"><h3 class="text-gold">Nuestra Misión</h3></div>
+                <p class="text-light text-center">Nuestra misión es ofrecer un espacio de guía espiritual y autoconocimiento a través del tarot y otras prácticas esotéricas, entregando a cada persona una experiencia clara, cercana y respetuosa que le ayude a comprender su presente y tomar decisiones con confianza.</p>
             </div>
             
             <div class="card-minimal mb-5">
-                <div class="text-center mb-4">
-                    <h3 class="text-gold">Nuestra Visión</h3>
-                </div>
-                <p class="text-light text-center">
-                    Nuestra visión es convertirnos en una plataforma de referencia en orientación espiritual online, donde el tarot y la sabiduría ancestral se unan con la tecnología para acompañar a las personas en su crecimiento personal, siempre con ética, empatía y autenticidad.
-                </p>
+                <div class="text-center mb-4"><h3 class="text-gold">Nuestra Visión</h3></div>
+                <p class="text-light text-center">Nuestra visión es convertirnos en una plataforma de referencia en orientación espiritual online, donde el tarot y la sabiduría ancestral se unan con la tecnología para acompañar a las personas en su crecimiento personal, siempre con ética, empatía y autenticidad.</p>
             </div>
             
-            ---
-
             <div class="text-center mb-4">
                 <h3 class="text-gold">Conoce a nuestras tarotistas</h3>
             </div>
             
             <div class="row justify-content-center">
                 
-                {# BUCLE DE JINJA2: Itera sobre la lista 'tarotistas' enviada desde el backend (BD) #}
+                {# BUCLE DE JINJA2 #}
                 {% for tarotista in tarotistas %}
                 <div class="col-md-5 mb-4">
                     <div class="card-minimal text-center h-100">
@@ -45,43 +33,36 @@
                             <div class="placeholder-image bg-dark border-minimal rounded-circle mx-auto d-flex align-items-center justify-content-center" 
                                 style="width: 120px; height: 120px; margin: 0 auto 1rem;">
                                 
-                                {# Muestra la imagen (asumiendo que 'avatar' contiene la URL completa o la ruta estática) #}
+                                {# Usa la URL del campo 'avatar' del usuario #}
                                 <img src="{{ tarotista.avatar }}" 
                                      alt="{{ tarotista.first_name }} {{ tarotista.last_name }}" 
                                      class="rounded-circle w-100 h-100 object-fit-cover">
                             </div>
                         </div>
                         
-                        {# Nombre y Apellido de la BD #}
+                        {# Nombre y Apellido de la tabla usuarios_usuario #}
                         <h4 class="text-gold mb-3">{{ tarotista.first_name }} {{ tarotista.last_name }}</h4>
                         
-                        {# Username y ID para referencia #}
-                        <p class="text-muted">
-                            Username: **{{ tarotista.username }}** (ID: {{ tarotista.id }})
-                        </p>
-                        
-                        {# Rut y Email de la BD #}
+                        {# Descripción/Bio de la tabla tarotistas_tarotista #}
                         <p class="text-light">
-                            **Rut:** {{ tarotista.rut }}<br>
-                            **Email:** {{ tarotista.email }}
+                            {{ tarotista.bio | safe }} 
                         </p>
                         
-                        {# Si la descripción de su perfil es un campo en la BD (ej. 'bio'): #}
-                        {% if tarotista.bio %}
-                        <p class="text-light mt-3">
-                            {{ tarotista.bio | safe }}
+                        {# Información extra de ambas tablas #}
+                        <p class="text-muted mt-3 small">
+                            **Especialidad:** {{ tarotista.especialidad|default:"Tarot General" }}
+                            <br>
+                            **Contacto:** {{ tarotista.email }}
                         </p>
-                        {% endif %}
-
                     </div>
                 </div>
                 {% endfor %}
                 {# FIN DEL BUCLE #}
 
-                {# Mensaje si la lista está vacía #}
+                {# Manejo si no hay tarotistas #}
                 {% if not tarotistas %}
                 <div class="col-12 text-center">
-                    <p class="text-light">Actualmente no tenemos tarotistas registradas.</p>
+                    <p class="text-light">No hay tarotistas registradas en este momento.</p>
                 </div>
                 {% endif %}
                 
@@ -92,11 +73,9 @@
 
 <style>
 .placeholder-image {
-    /* Estilo del borde para el contenedor de la imagen */
     border: 2px solid rgba(212, 175, 55, 0.3);
 }
 
-/* Asegura que la imagen se vea bien dentro del círculo */
 .object-fit-cover {
     object-fit: cover; 
 }
