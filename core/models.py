@@ -29,19 +29,79 @@ class Reporte(models.Model):
 from django.db import models
 from usuarios.models import Usuario # Importamos tu modelo de usuario personalizado
 
+# tarotistas/models.py
+
+from django.db import models
+# Importamos el modelo de Usuario (asumiendo que está en la app 'usuarios')
+from usuarios.models import Usuario 
+
 class Tarotista(models.Model):
-    # La clave que conecta a la tabla de Usuarios (usuarios_usuario)
-    # primary_key=True es común para perfiles OneToOneField.
+    # 1. ENLACE AL USUARIO (CLAVE)
+    # OneToOneField asegura que cada Usuario solo tenga UN perfil de Tarotista
+    # related_name='tarotista' permite acceder al perfil desde el Usuario: usuario.tarotista
     usuario = models.OneToOneField(
-        Usuario,  
-        on_delete=models.CASCADE,
-        related_name='tarotista' # Nombre de la relación inversa (request.user.tarotista)
+        Usuario, 
+        on_delete=models.CASCADE, 
+        related_name='tarotista',
+        primary_key=True # Opcional, pero buena práctica para perfiles
     )
     
-    bio = models.TextField(blank=True, null=True, default="Tarotista en formación.")
-    especialidad = models.CharField(max_length=100, blank=True, null=True)
-    fecha_registro = models.DateTimeField(auto_now_add=True)
+    # 2. CAMPOS DEL PERFIL PROFESIONAL
     
+    bio = models.TextField(
+        max_length=500, 
+        blank=True, 
+        default="",
+        verbose_name="Biografía y Experiencia"
+    )
+    
+    # Definición de opciones para un campo de selección
+    ESPECIALIDADES = [
+        ('TRT', 'Tarot Clásico/Rider Waite'),
+        ('RNS', 'Lectura de Runas'),
+        ('AST', 'Astrología Predictiva'),
+        ('ANG', 'Mensajes Angélicos'),
+        ('SAN', 'Sanación Energética'),
+    ]
+    
+    especialidad = models.CharField(
+        max_length=3, 
+        choices=ESPECIALIDADES, 
+        default='TRT',
+        verbose_name="Especialidad Principal"
+    )
+    
+    # Tasa de precios por hora o por consulta
+    tarifa = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0.00,
+        verbose_name="Tarifa por Consulta (Unidad)"
+    )
+
+    # 3. METADATOS
+    
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de Creación del Perfil"
+    )
+    
+    fecha_actualizacion = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Última Actualización"
+    )
+
+    def __str__(self):
+        # Muestra el nombre completo del usuario si existe, sino el username
+        nombre = self.usuario.get_full_name() or self.usuario.username
+        return f"Perfil de Tarotista: {nombre}"
+
+    class Meta:
+        verbose_name = "Tarotista"
+        verbose_name_plural = "Tarotistas"
+        # Asegura que el nombre de la tabla coincida si no quieres el nombre por defecto
+        # (Esto coincide con tu nota: 'esta tabla es tarotistas_tarotista')
+        db_table = 'tarotistas_tarotista'
     def __str__(self):
         return f"Perfil de {self.usuario.get_full_name()}"
 
