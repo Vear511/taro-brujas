@@ -160,49 +160,52 @@ def eliminar_reporte(request, reporte_id):
     }
     return render(request, 'confirmar_eliminar_reporte.html', context)
 
-# Importa tu modelo de Tarotista (asumiendo que se llama Tarotista en tu app)
-from .models import Tarotista 
-# Asumiendo que el modelo User está relacionado a Tarotista
-from django.contrib.auth import get_user_model
-User = get_user_model() 
+# En tu archivo views.py
 
-def obtener_tarotistas_para_mostrar(request):
+# Asegúrate de importar tus modelos
+from django.shortcuts import render
+from .models import Tarotista # Tu modelo para tarotistas_tarotista
+
+def sobre_nosotras_view(request):
     """
-    Función que consulta la BD para obtener todos los usuarios 
-    que están registrados como tarotistas.
+    Obtiene todos los perfiles de tarotistas y, en una sola consulta,
+    obtiene los datos del usuario relacionado (JOIN implícito).
     """
-    # Paso 1: Usar un filtro de existencia (lookup __isnull=False) o 
-    # usar un método de consulta para hacer un JOIN implícito.
-    # Esto filtra la tabla User para que SOLO se incluyan aquellos 
-    # que tienen un registro relacionado en la tabla Tarotista.
     
-    # Opción 1 (Asumiendo que User tiene un 'tarotista_profile' relacionado)
-    # Lista de objetos User (que son Tarotistas)
-    tarotistas_queryset = User.objects.filter(tarotista__isnull=False).order_by('id')
+    # 1. Consulta eficiente: 
+    # select_related('user') realiza un JOIN para obtener los datos de usuarios_usuario
+    # junto con los de tarotistas_tarotista en una sola consulta.
+    perfiles_tarotistas = Tarotista.objects.select_related('user').all()
     
-    # Opción 2 (Si Tarotista hereda de User o es OneToOneField)
-    # tarotistas_queryset = Tarotista.objects.select_related('user').all()
+    # 2. Formatear los datos para la plantilla
+    tarotistas_data = []
     
-    
-    # Paso 2: Extraer solo los campos que necesitas
-    # Usaremos .values() para obtener una lista de diccionarios, 
-    # simulando el formato de salida para la plantilla.
-    datos_tarotistas = tarotistas_queryset.values(
-        'id',             # 1
-        'username',       # 5
-        'first_name',     # 6
-        'last_name',      # 7
-        'email',          # 8
-        'rut',            # 17 (Asumiendo que 'rut' es un campo custom en User)
-        'avatar'          # 15
-    )
-    
-    # Si Tarotista tiene campos de bio o especialidad, necesitarías hacer un .select_related
-    # y extraer esos campos también.
-    
-    # Paso 3: Renderizar la plantilla
+    for perfil in perfiles_tarotistas:
+        # 'perfil' es el registro de tarotistas_tarotista
+        # 'perfil.user' es el registro de usuarios_usuario
+        user = perfil.user 
+
+        # Asegúrate de que el usuario esté activo y no sea un administrador/staff si es necesario
+        if not user.is_active:
+             continue 
+
+        tarotistas_data.append({
+            # Datos del modelo usuarios_usuario (Columnas 1, 5, 6, 7, 8, 15, 17)
+            'id': user.id,
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'email': user.email,
+            'avatar': user.avatar.url if user.avatar else '/static/default/path.jpg', # Manejo de imágenes
+            'rut': user.rut, # Asumiendo que es un campo del modelo User
+            
+            # Datos de la tabla tarotistas_tarotista (ej: la bio, la especialidad, etc.)
+            'bio': perfil.bio, # Asumiendo que 'bio' es el campo de descripción en el perfil
+            'especialidad': perfil.especialidad if hasattr(perfil, 'especialidad') else None,
+        })
+        
     context = {
-        'tarotistas': list(datos_tarotistas) # Pasamos la lista de diccionarios a la plantilla
+        'tarotistas': tarotistas_data # Esta es la lista que se pasa a la plantilla
     }
     
-    return render_template('about_us.html', **context)
+    return render(request, 'about_us.html', context)
