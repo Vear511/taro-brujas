@@ -2,9 +2,24 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import Http404
+
+# --- Importaciones de Modelos ---
+# CLAVE: Para acceder al modelo de usuario personalizado
+from django.contrib.auth import get_user_model 
+
+# Modelos específicos de las aplicaciones
 from .models import Reporte
 from citas.models import Cita
-from usuarios.models import Usuario
+from usuarios.models import Usuario 
+# Asumiendo que el modelo Tarotista está en alguna app importable (ej: tarotistas.models)
+# Si tu modelo Tarotista está en la app actual (core), solo usa from .models import Tarotista
+# Si está en otra app, debes especificarla. Usaremos una asunción segura:
+from tarotistas.models import Tarotista 
+
+# Obtenemos la referencia al modelo de Usuario
+User = get_user_model() 
+
+# ==================== VISTAS BÁSICAS ====================
 
 def home(request):
     return render(request, 'home.html')
@@ -13,7 +28,53 @@ def servicios(request):
     return render(request, 'servicios.html')
 
 def sobre_nosotras(request):
-    return render(request, 'sobre_nosotras.html')
+    """
+    Vista principal de "Sobre Nosotras". Carga dinámicamente
+    la información de los perfiles de tarotistas desde la BD.
+    """
+    
+    # 1. Consulta eficiente: Hace un JOIN de Tarotista a Usuario.
+    # Usamos 'usuario' para la relación, basándonos en tu modelo Usuario.
+    try:
+        perfiles_tarotistas = Tarotista.objects.select_related('usuario').all()
+    except Exception as e:
+        # Esto es un debug de seguridad si la relación falla o la tabla no existe
+        messages.error(request, f'Error de BD al cargar tarotistas: {str(e)}')
+        perfiles_tarotistas = [] # Evita que el bucle falle
+
+    tarotistas_data = []
+    
+    for perfil in perfiles_tarotistas:
+        
+        # 1A. Obtenemos el objeto Usuario relacionado
+        user_obj = perfil.usuario 
+        
+        # 1B. Filtro de seguridad: Omite usuarios inactivos o sin nombre
+        if not user_obj.is_active or not user_obj.first_name:
+             continue 
+        
+        # 1C. Formateamos los datos
+        tarotistas_data.append({
+            # Datos de usuarios_usuario
+            'id': user_obj.id,
+            'username': user_obj.username,
+            'first_name': user_obj.first_name,
+            'last_name': user_obj.last_name,
+            'email': user_obj.email,
+            # Manejo de avatar: usa .url si existe, sino un placeholder
+            'avatar': user_obj.avatar.url if user_obj.avatar else '/static/default/avatar.jpg',
+            'rut': user_obj.rut,
+            
+            # Datos de tarotistas_tarotista (perfil)
+            'bio': perfil.bio,
+            'especialidad': perfil.especialidad,
+        })
+        
+    context = {
+        'tarotistas': tarotistas_data
+    }
+    
+    return render(request, 'sobre_nosotras.html', context)
 
 
 # ==================== VISTAS DE REPORTES ====================
@@ -22,7 +83,8 @@ def sobre_nosotras(request):
 def reportes_lista(request):
     """Lista de reportes - solo los de la tarotista autenticada"""
     # Verificar que el usuario sea tarotista
-    if not hasattr(request.user, 'tarotista'):
+    # Aquí se utiliza la relación inversa, asumiendo que el modelo Usuario tiene un campo 'tarotista'
+    if not hasattr(request.user, 'tarotista'): 
         messages.error(request, 'Solo los tarotistas pueden acceder a esta sección.')
         return redirect('perfil')
     
@@ -53,13 +115,11 @@ def crear_reporte(request):
         
         if not paciente_id or not experiencia:
             messages.error(request, 'Por favor completa todos los campos requeridos.')
-            # renderizamos el formulario con context para preservar el estado
             citas = Cita.objects.filter(tarotista=tarotista, estado='completada')
             pacientes = Usuario.objects.filter(tarotista__isnull=True)
             return render(request, 'crear_reporte.html', {'citas': citas, 'pacientes': pacientes})
         
         try:
-            paciente = get_object_or_404(Usuario, id=paciente_id)
             paciente = get_object_or_404(Usuario, id=paciente_id)
             
             cita = None
@@ -82,7 +142,6 @@ def crear_reporte(request):
     
     # GET: Obtener citas del tarotista para seleccionar
     citas = Cita.objects.filter(tarotista=tarotista, estado='completada')
-
 
     # Obtener todos los usuarios para el selector
     pacientes = Usuario.objects.all()
@@ -159,58 +218,3 @@ def eliminar_reporte(request, reporte_id):
         'reporte': reporte,
     }
     return render(request, 'confirmar_eliminar_reporte.html', context)
-
-# En tu archivo views.py
-# En tu archivo views.py
-from django.shortcuts import render
-# Asegúrate de importar tu modelo Tarotista
-from .models import Tarotista 
-
-def sobre_nosotras_view(request):
-    """
-    Consulta la tabla Tarotista (tarotistas_tarotista) y 
-    usa la relación 'user' para acceder al ID en la tabla User (usuarios_usuario).
-    """
-    
-    # 1. Consulta eficiente:
-    # select_related('user') asegura que los datos del usuario 
-    # se obtengan en la misma consulta que los perfiles de tarotista (el JOIN).
-    perfiles_tarotistas = Tarotista.objects.select_related('user').all()
-    
-    tarotistas_data = []
-    
-    for perfil in perfiles_tarotistas:
-        # El objeto 'perfil' es un registro de tarotistas_tarotista
-        # Accedemos a la relación: perfil.user
-        
-        # 1A. Obtenemos el objeto User relacionado (usuarios_usuario)
-        user_obj = perfil.user 
-        
-        # Opcional: Filtra usuarios inactivos o sin datos
-        if not user_obj.is_active or not user_obj.first_name:
-             continue 
-        
-        # 1B. Usamos el ID del perfil y lo buscamos en el objeto User.
-        # En Python, simplemente accedemos a las propiedades: user_obj.id, user_obj.username, etc.
-        
-        tarotistas_data.append({
-            # Datos de usuarios_usuario (usando la relación user_obj)
-            'id': user_obj.id,
-            'username': user_obj.username,
-            'first_name': user_obj.first_name,
-            'last_name': user_obj.last_name,
-            'email': user_obj.email,
-            # Asegúrate de usar .url para campos File/ImageField
-            'avatar': user_obj.avatar.url if user_obj.avatar else '/static/default/avatar.jpg',
-            'rut': user_obj.rut, 
-            
-            # Datos de tarotistas_tarotista (usando el objeto perfil)
-            'bio': perfil.bio, 
-            'especialidad': perfil.especialidad,
-        })
-        
-    context = {
-        'tarotistas': tarotistas_data 
-    }
-    
-    return render(request, 'about_us.html', context)
