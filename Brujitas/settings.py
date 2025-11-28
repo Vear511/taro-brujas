@@ -166,3 +166,9 @@ CSRF_TRUSTED_ORIGINS = [
     'https://brujitas-production.up.railway.app',
     'https://*.railway.app',
 ]
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # ← IMPORTANTE
+    ...
+]
+
