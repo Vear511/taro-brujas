@@ -48,6 +48,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # ← IMPORTANTE
 ]
 
 ROOT_URLCONF = 'Brujitas.urls'
@@ -166,9 +168,5 @@ CSRF_TRUSTED_ORIGINS = [
     'https://brujitas-production.up.railway.app',
     'https://*.railway.app',
 ]
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # ← IMPORTANTE
-    ...
-]
+
 
