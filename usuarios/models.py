@@ -14,6 +14,7 @@ class Usuario(AbstractUser):
     bio = models.TextField(blank=True)
     avatar = models.ImageField(upload_to='avatars/', blank=True)
     apodo = models.CharField(max_length=50, blank=True)
+    bloqueado = models.BooleanField(default=False)  # 0 = False, 1 = True
     creado_en = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
