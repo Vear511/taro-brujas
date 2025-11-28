@@ -3,21 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import Http404
 
-# --- Importaciones de Modelos ---
-# CLAVE: Para acceder al modelo de usuario personalizado
-from django.contrib.auth import get_user_model 
-
-# Modelos específicos de las aplicaciones
+# Modelos importados:
 from .models import Reporte
 from citas.models import Cita
-from usuarios.models import Usuario 
-# Asumiendo que el modelo Tarotista está en alguna app importable (ej: tarotistas.models)
-# Si tu modelo Tarotista está en la app actual (core), solo usa from .models import Tarotista
-# Si está en otra app, debes especificarla. Usaremos una asunción segura:
-from tarotistas.models import Tarotista 
-
-# Obtenemos la referencia al modelo de Usuario
-User = get_user_model() 
+from usuarios.models import Usuario
+# Nota: Aquí no estaba importado el modelo Tarotista.
 
 # ==================== VISTAS BÁSICAS ====================
 
@@ -27,42 +17,9 @@ def home(request):
 def servicios(request):
     return render(request, 'servicios.html')
 
-# ... (código de imports)
-
 def sobre_nosotras(request):
-    """
-    Vista principal de "Sobre Nosotras". Carga dinámicamente
-    la información de los perfiles de tarotistas desde la BD.
-    """
-    
-    # 1. Consulta eficiente: Hace un JOIN de Tarotista a Usuario.
-    perfiles_tarotistas = Tarotista.objects.select_related('usuario').all()
-
-    tarotistas_data = []
-    
-    for perfil in perfiles_tarotistas:
-        user_obj = perfil.usuario
-        
-        # Filtro: Solo usuarios activos y con nombre
-        if not user_obj.is_active or not user_obj.first_name:
-             continue 
-        
-        # Formateamos los datos (como ya lo hiciste)
-        tarotistas_data.append({
-            # ... (Datos del usuario)
-            'first_name': user_obj.first_name,
-            # ...
-            'avatar': user_obj.avatar.url if user_obj.avatar else '/static/default/avatar.jpg',
-            # ... (Datos del perfil Tarotista)
-            'bio': perfil.bio,
-            'especialidad': perfil.especialidad,
-        })
-        
-    context = {
-        'tarotistas': tarotistas_data  # Esta es la variable que usa el HTML
-    }
-    
-    return render(request, 'sobre_nosotras.html', context)
+    # Esta es la versión original, sin lógica de consulta a la BD.
+    return render(request, 'sobre_nosotras.html')
 
 
 # ==================== VISTAS DE REPORTES ====================
@@ -71,8 +28,7 @@ def sobre_nosotras(request):
 def reportes_lista(request):
     """Lista de reportes - solo los de la tarotista autenticada"""
     # Verificar que el usuario sea tarotista
-    # Aquí se utiliza la relación inversa, asumiendo que el modelo Usuario tiene un campo 'tarotista'
-    if not hasattr(request.user, 'tarotista'): 
+    if not hasattr(request.user, 'tarotista'):
         messages.error(request, 'Solo los tarotistas pueden acceder a esta sección.')
         return redirect('perfil')
     
@@ -103,11 +59,13 @@ def crear_reporte(request):
         
         if not paciente_id or not experiencia:
             messages.error(request, 'Por favor completa todos los campos requeridos.')
+            # renderizamos el formulario con context para preservar el estado
             citas = Cita.objects.filter(tarotista=tarotista, estado='completada')
             pacientes = Usuario.objects.filter(tarotista__isnull=True)
             return render(request, 'crear_reporte.html', {'citas': citas, 'pacientes': pacientes})
         
         try:
+            paciente = get_object_or_404(Usuario, id=paciente_id)
             paciente = get_object_or_404(Usuario, id=paciente_id)
             
             cita = None
