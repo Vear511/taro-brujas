@@ -44,3 +44,38 @@ class Tarotista(models.Model):
     
     def __str__(self):
         return f"Perfil de {self.usuario.get_full_name()}"
+
+# En tu app de tarotistas (ej. tarotistas/signals.py)
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from usuarios.models import Usuario
+from .models import Tarotista # Importa tu modelo Tarotista
+
+# Decorador que conecta esta función a la señal
+@receiver(post_save, sender=Usuario)
+def crear_perfil_tarotista(sender, instance, created, **kwargs):
+    """
+    Función que se ejecuta CADA VEZ que se guarda un objeto Usuario.
+    Si el usuario es nuevo ('created' es True), crea un perfil de Tarotista.
+    """
+    if created:
+        # Asegúrate de que solo se cree si es un tipo de usuario 'tarotista' si tienes un campo de rol.
+        # Si no tienes un campo de rol, se creará para TODOS los usuarios.
+        
+        # Ejemplo si Usuario tiene un campo 'rol' (ej. rol='TAROTISTA'):
+        # if instance.rol == 'TAROTISTA':
+        
+        try:
+            Tarotista.objects.create(usuario=instance)
+            print(f"DEBUG: Perfil de Tarotista creado automáticamente para {instance.username}")
+        except Exception as e:
+             # Esto debería evitar que el sistema falle si ya existe un perfil por alguna razón
+            print(f"ADVERTENCIA: No se pudo crear el perfil de Tarotista para {instance.username}. Error: {e}")
+
+# Opcional: Para guardar el perfil si se edita el usuario
+@receiver(post_save, sender=Usuario)
+def guardar_perfil_tarotista(sender, instance, **kwargs):
+    # Esto es útil si tienes campos en Tarotista que quieres sincronizar
+    if hasattr(instance, 'tarotista'):
+        instance.tarotista.save()
