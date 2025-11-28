@@ -4,12 +4,22 @@ Django settings for Brujitas project.
 
 from pathlib import Path
 import os
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# -------------------------
+# CONFIGURACIÓN GENERAL
+# -------------------------
+
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-clave-temporal')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
+
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+
+# -------------------------
+# APPS
+# -------------------------
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -19,10 +29,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'usuarios',
-    'citas', 
+    'citas',
     'tarotistas',
     'core',
 ]
+
+# -------------------------
+# MIDDLEWARE
+# -------------------------
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -36,6 +50,10 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'Brujitas.urls'
+
+# -------------------------
+# TEMPLATES
+# -------------------------
 
 TEMPLATES = [
     {
@@ -55,12 +73,32 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Brujitas.wsgi.application'
 
+# -------------------------
+# BASE DE DATOS
+# -------------------------
+
+# LOCAL: SQLite
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# RAILWAY: usar PostgreSQL si existe DATABASE_URL
+if 'DATABASE_URL' in os.environ:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'railway',
+        'USER': 'postgres',
+        'PASSWORD': 'PXVoBhORsOECYeHxrwIbcELwJAsPmpor',
+        'HOST': 'hopper.proxy.rlwy.net',
+        'PORT': '22112',
+    }
+
+# -------------------------
+# VALIDADORES DE CONTRASEÑA
+# -------------------------
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -69,45 +107,49 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# -------------------------
+# LOCALIZACIÓN
+# -------------------------
+
 LANGUAGE_CODE = 'es-es'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# -------------------------
+# ARCHIVOS ESTÁTICOS
+# -------------------------
+
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
+# -------------------------
+# MEDIA
+# -------------------------
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# -------------------------
+# USUARIO PERSONALIZADO
+# -------------------------
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'usuarios.Usuario'
+
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-# Configuración para producción (solo si DATABASE_URL existe)
-if 'DATABASE_URL' in os.environ:
-    import dj_database_url
-    DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
-    
-    # Obtener ALLOWED_HOSTS de variable de entorno o usar valor por defecto
-    allowed_hosts = os.getenv('ALLOWED_HOSTS', '')
-    if allowed_hosts:
-        ALLOWED_HOSTS = allowed_hosts.split(',')
-    else:
-        ALLOWED_HOSTS = ['.railway.app', 'localhost', '127.0.0.1']
-    
-    DEBUG = os.getenv('DEBUG', 'False') == 'True'
+# -------------------------
+# LOGGING
+# -------------------------
 
-    # Logging para producción
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
+        'console': {'class': 'logging.StreamHandler'},
     },
     'root': {
         'handlers': ['console'],
@@ -115,12 +157,11 @@ LOGGING = {
     },
 }
 
+# -------------------------
+# CSRF PARA RAILWAY
+# -------------------------
 
-# Agrega esto al final de settings.py
 CSRF_TRUSTED_ORIGINS = [
     'https://brujitas-production.up.railway.app',
     'https://*.railway.app',
 ]
-
-# Para desarrollo, puedes habilitar DEBUG temporalmente
-# DEBUG = True  # Solo para testing, luego cambiar a False
