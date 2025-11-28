@@ -1,77 +1,87 @@
-{% extends 'base.html' %} 
-{% block title %}Sobre Nosotras - Nuestras Tarotistas Estelares{% endblock %}
+{% extends 'base.html' %}
 
 {% block content %}
-<section class="container my-5">
-    
-    <header class="text-center mb-5">
-        <h1 class="display-4 fw-bold text-dark">✨ Conoce a Nuestras Guías Estelares ✨</h1>
-        <p class="lead text-muted">
-            Nuestro equipo de tarotistas certificadas está aquí para ofrecerte claridad, 
-            orientación y apoyo en tu camino.
-        </p>
-    </header>
+<div class="container mt-5 pt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Título principal -->
+            <div class="text-center mb-5">
+                <h1 class="hero-title">Sobre Nosotras</h1>
+            </div>
+            
+            <!-- Misión -->
+            <div class="card-minimal mb-5">
+                <div class="text-center mb-4">
+                    <h3 class="text-gold">Nuestra Misión</h3>
+                </div>
+                <p class="text-light text-center">
+                    Nuestra misión es ofrecer un espacio de guía espiritual y autoconocimiento a través del tarot y otras prácticas esotéricas, entregando a cada persona una experiencia clara, cercana y respetuosa que le ayude a comprender su presente y tomar decisiones con confianza.
+                </p>
+            </div>
+            
+            <!-- Visión -->
+            <div class="card-minimal mb-5">
+                <div class="text-center mb-4">
+                    <h3 class="text-gold">Nuestra Visión</h3>
+                </div>
+                <p class="text-light text-center">
+                    Nuestra visión es convertirnos en una plataforma de referencia en orientación espiritual online, donde el tarot y la sabiduría ancestral se unan con la tecnología para acompañar a las personas en su crecimiento personal, siempre con ética, empatía y autenticidad.
+                </p>
+            </div>
+            
+            <!-- Tarotistas -->
+            <div class="text-center mb-4">
+                <h3 class="text-gold">Conoce a nuestras tarotistas</h3>
+            </div>
+            
+            <div class="row justify-content-center">
+                <!-- Tarotista 1 - María -->
+                <div class="col-md-5 mb-4">
+                    <div class="card-minimal text-center h-100">
+                        <div class="mb-3">
+                            <!-- Espacio para imagen (puedes agregar luego) -->
+                            <div class="placeholder-image bg-dark border-minimal rounded-circle mx-auto d-flex align-items-center justify-content-center" 
+                                 style="width: 120px; height: 120px; margin: 0 auto 1rem;">
+                                <span class="text-gold" style="font-size: 3rem;">🔮</span>
+                            </div>
+                        </div>
+                        <h4 class="text-gold mb-3">María</h4>
+                        <p class="text-light">
+                            Soy tarotista y mi misión es acompañarte a través de la lectura de las cartas del tarot para que encuentres claridad en tu presente, comprensión de tu pasado y orientación hacia tu futuro. No busco predecir de manera absoluta, sino entregarte una guía que te ayude a reflexionar y tomar decisiones más conscientes.
+                        </p>
+                        <p class="text-light mt-3">
+                            Con empatía e intuición, interpreto los mensajes de las cartas para iluminar tu camino y mostrarte nuevas perspectivas en los momentos en que más lo necesites.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Tarotista 2 - María (temporal) -->
+                <div class="col-md-5 mb-4">
+                    <div class="card-minimal text-center h-100">
+                        <div class="mb-3">
+                            <!-- Espacio para imagen (puedes agregar luego) -->
+                            <div class="placeholder-image bg-dark border-minimal rounded-circle mx-auto d-flex align-items-center justify-content-center" 
+                                 style="width: 120px; height: 120px; margin: 0 auto 1rem;">
+                                <span class="text-gold" style="font-size: 3rem;">💫</span>
+                            </div>
+                        </div>
+                        <h4 class="text-gold mb-3">María</h4>
+                        <p class="text-light">
+                            Soy tarotista y mi misión es acompañarte a través de la lectura de las cartas del tarot para que encuentres claridad en tu presente, comprensión de tu pasado y orientación hacia tu futuro. No busco predecir de manera absoluta, sino entregarte una guía que te ayude a reflexionar y tomar decisiones más conscientes.
+                        </p>
+                        <p class="text-light mt-3">
+                            Con empatía e intuición, interpreto los mensajes de las cartas para iluminar tu camino y mostrarte nuevas perspectivas en los momentos en que más lo necesites.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-    {% if messages %}
-        <div class="row mb-4">
-            <div class="col-12">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    {% endif %}
-
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        
-        {% for tarotista in tarotistas %}
-        <div class="col">
-            <div class="card h-100 shadow-lg border-primary border-3">
-                
-                <div class="card-body d-flex flex-column align-items-center p-4">
-                    
-                    <img src="{{ tarotista.avatar }}" 
-                         class="rounded-circle mb-3 border border-4 border-warning" 
-                         alt="Avatar de {{ tarotista.first_name }}" 
-                         style="width: 150px; height: 150px; object-fit: cover;">
-                    
-                    <h2 class="card-title text-primary mb-1">{{ tarotista.first_name }} {{ tarotista.last_name }}</h2>
-                    <h5 class="card-subtitle mb-3 text-secondary fst-italic">
-                        Especialista en: **{{ tarotista.especialidad|default:"Tarot Terapéutico" }}**
-                    </h5>
-                    
-                    <p class="card-text text-center text-dark mt-2 flex-grow-1">
-                        {{ tarotista.bio|truncatechars:150|default:"Esta tarotista aún no ha escrito su biografía. Contáctala para descubrir su magia." }}
-                        {% if tarotista.bio|length > 150 %}
-                            <a href="#" class="text-decoration-none text-info fw-bold">...Leer biografía completa</a>
-                        {% endif %}
-                    </p>
-                    
-                    <a href="{% url 'reservar_cita' tarotista.id %}" class="btn btn-warning btn-lg mt-4 w-100 fw-bold shadow-sm">
-                        Agendar Cita con {{ tarotista.first_name }}
-                    </a>
-                </div>
-                
-                <div class="card-footer bg-light border-0 text-center">
-                    <small class="text-muted">
-                        Contacto: **<a href="mailto:{{ tarotista.email }}" class="text-decoration-none">{{ tarotista.email }}</a>**
-                    </small>
-                </div>
-            </div>
-        </div>
-        {% empty %}
-        <div class="col-12">
-            <div class="alert alert-info text-center shadow-sm p-4" role="alert">
-                <h4>🔮 No hay tarotistas disponibles en este momento.</h4>
-                <p class="mb-0">Por favor, vuelve a intentarlo más tarde o contacta a soporte.</p>
-            </div>
-        </div>
-        {% endfor %}
-        
-    </div>
-
-</section>
+<style>
+.placeholder-image {
+    border: 2px solid rgba(212, 175, 55, 0.3);
+}
+</style>
 {% endblock %}
