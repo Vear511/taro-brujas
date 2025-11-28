@@ -171,23 +171,3 @@ from django.shortcuts import render
 from .models import Tarotista  
 # Si el modelo de usuario está en otra app o es el modelo por defecto, ajústalo.
 
-def sobre_nosotras_view(request):
-    """
-    Consulta la tabla tarotistas_tarotista y usa select_related() 
-    para adjuntar la información de la tabla usuarios_usuario.
-    """
-    
-    # IMPORTANTE: Asumo que la clave foránea en el modelo Tarotista 
-    # se llama 'usuario' y apunta al modelo de usuario.
-    try:
-        tarotistas = Tarotista.objects.select_related('usuario').filter(disponible=True).order_by('-calificacion')
-    except Exception as e:
-        # Manejo de errores básico si la BD falla o la relación no existe
-        print(f"Error al cargar tarotistas: {e}")
-        tarotistas = [] # En caso de error, envía una lista vacía
-
-    context = {
-        'tarotistas': tarotistas
-    }
-    
-    return render(request, 'sobre_nosotras.html', context)
