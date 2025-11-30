@@ -7,15 +7,14 @@ from .models import Tarotista
 # VISTAS PÚBLICAS Y DE CONSULTA DE TAROTISTAS
 # ----------------------------------------------------------------------
 
-def sobre_nosotras_view(request):
+def sobre_nosotras(request):
     """
     Vista que recupera los datos combinados (Usuario + Tarotista) para
     la sección pública 'Conoce a nuestras tarotistas'.
-    Incluye lógica de diagnóstico para verificar la carga de datos.
+    Incluye lógica de diagnóstico y fallbacks para datos faltantes.
     """
     
-    # 1. PRUEBA DE CONSULTA: Usar .all() es la mejor forma de descartar fallos de filtro.
-    # Si esta línea falla, el problema es en la relación del modelo (ForeignKey/OneToOneField).
+    # 1. PRUEBA DE CONSULTA: Sin filtros para asegurar que se recuperen todos los datos.
     tarotistas_data = Tarotista.objects.select_related('usuario').all()
     
     # *** DIAGNÓSTICO: Buscar esto en la consola después de visitar la URL ***
@@ -26,17 +25,29 @@ def sobre_nosotras_view(request):
     
     for t in tarotistas_data:
         try:
-            # Mapeamos los campos a un diccionario para el template
+            # ----------------------------------------------------
+            # GARANTIZAR VALORES DE RESPALDO (FALLBACK)
+            # ----------------------------------------------------
+            
+            # Nombre: Usa first_name, luego username, luego un valor por defecto.
+            nombre_a_mostrar = t.usuario.first_name or t.usuario.username or "Tarotista (Nombre Pendiente)"
+            
+            # Descripción: Usa la descripción o un mensaje por defecto.
+            descripcion_a_mostrar = t.descripcion or "Esta tarotista aún no ha completado su biografía."
+            
+            # Imagen: Usa la imagen del avatar o una por defecto.
+            url_imagen_a_mostrar = t.usuario.avatar.url if t.usuario.avatar else '/static/img/placeholder_default.png'
+            
             tarotistas_listos.append({
-                'nombre': t.usuario.first_name, 
-                'descripcion': t.descripcion, 
-                # Usamos .url para campos FileField/ImageField
-                'url_imagen': t.usuario.avatar.url if t.usuario.avatar else '/static/img/placeholder_default.png', 
+                'nombre': nombre_a_mostrar, 
+                'descripcion': descripcion_a_mostrar, 
+                'url_imagen': url_imagen_a_mostrar, 
             })
+            
         except AttributeError:
             # Se dispara si un registro de Tarotista no tiene un Usuario válido asociado.
             print(f"ERROR DE BD: El registro de Tarotista (ID: {t.id}) tiene un usuario_id roto o nulo.")
-            continue # Saltar este registro para no romper la página
+            continue # Saltamos este registro
         
     print(f"Lista final para el template: {tarotistas_listos}")
     print(f"--- FIN DIAGNÓSTICO SOBRE_NOSOTRAS ---")
@@ -46,7 +57,6 @@ def sobre_nosotras_view(request):
     }
     
     return render(request, 'sobre_nosotras.html', context)
-
 
 def lista_tarotistas(request):
     """
