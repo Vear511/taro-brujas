@@ -20,4 +20,5 @@ urlpatterns = [
     path('reportes/<int:reporte_id>/', views.detalle_reporte, name='detalle_reporte'),
     path('reportes/<int:reporte_id>/editar/', views.editar_reporte, name='editar_reporte'),
     path('reportes/<int:reporte_id>/eliminar/', views.eliminar_reporte, name='eliminar_reporte'),
+    path('sobre-nosotras/', views.sobre_nosotras, name='sobre_nosotras'), # ¡Asegúrate de que no haya un 'view' aquí!
 ]
