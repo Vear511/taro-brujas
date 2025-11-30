@@ -138,7 +138,6 @@ AUTH_USER_MODEL = 'usuarios.Usuario'
 # El error se soluciona en la vista 'registro' especificando el backend.
 AUTHENTICATION_BACKENDS = [
     'usuarios.backends.BloqueadoBackend',
-    'django.contrib.auth.backends.ModelBackend',
 ]
 
 LOGIN_REDIRECT_URL = '/'
