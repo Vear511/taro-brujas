@@ -25,36 +25,57 @@
                     Nuestra visión es convertirnos en una plataforma de referencia en orientación espiritual online, donde el tarot y la sabiduría ancestral se unan con la tecnología para acompañar a las personas en su crecimiento personal, siempre con ética, empatía y autenticidad.
                 </p>
             </div>
+
+            <!-- === INICIO: LÍNEA DE DEBUG para confirmar el conteo === -->
+            <div style="background-color: #fce8e8; padding: 10px; border: 1px solid #e57373; color: #b71c1c; text-align: center; margin-bottom: 20px;">
+                DEBUG: Se encontraron {{ tarotistas_count_debug|default:"[ERROR: NÚMERO NO CARGADO/0]" }} tarotistas en la consulta.
+            </div>
+            <!-- === FIN LÍNEA DE DEBUG === -->
             
             <div class="text-center mb-4">
                 <h3 class="text-gold">Conoce a nuestras tarotistas</h3>
             </div>
             
+            <!-- Cards con la lista de tarotistas (Se usa col-md-6 para dos columnas en pantallas medianas) -->
             <div class="row justify-content-center">
                 
                 {% for tarotista in tarotistas %}
-                <div class="col-md-5 mb-4">
-                    <div class="card-minimal text-center h-100">
-                        <div class="mb-3">
-                            <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center" 
-                                style="width: 120px; height: 120px; margin: 0 auto 1rem; overflow: hidden;">
-                                
-                                <img src="{{ tarotista.url_imagen }}" alt="Foto de {{ tarotista.nombre }}" 
-                                     style="width: 100%; height: 100%; object-fit: cover; border: 2px solid rgba(212, 175, 55, 0.3);">
-                            </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card-minimal text-center h-100 p-4 d-flex flex-column align-items-center">
+                        
+                        <!-- Avatar o Placeholder (LÓGICA DEL MODELO APLICADA) -->
+                        <div class="mb-3" style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; border: 3px solid var(--accent-gold);">
+                            {% if tarotista.usuario.avatar %}
+                                <img src="{{ tarotista.usuario.avatar.url }}" alt="Foto de {{ tarotista.usuario.get_full_name }}" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                                <img src="https://placehold.co/120x120/1e293b/d4af37?text={{ tarotista.usuario.first_name|first }}" alt="Avatar Placeholder" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% endif %}
                         </div>
                         
-                        <h4 class="text-gold mb-3">{{ tarotista.nombre }}</h4>
+                        <!-- Nombre y Datos (LÓGICA DEL MODELO APLICADA) -->
+                        <h4 class="text-gold mb-1">{{ tarotista.usuario.get_full_name|default:tarotista.usuario.username }}</h4>
+                        <p class="text-muted small">@{{ tarotista.usuario.username }}</p>
+
+                        <p class="text-light small mt-2 flex-grow-1">{{ tarotista.descripcion|truncatechars:100 }}</p>
                         
-                        <p class="text-light">
-                            {{ tarotista.descripcion }}
-                        </p>
+                        <p class="mb-1">✨ Especialidad: <strong>{{ tarotista.especialidad }}</strong></p>
+                        <p class="mb-3">⭐ Calificación: <strong>{{ tarotista.calificacion|floatformat:1 }} / 5.0</strong></p>
+
+                        <span class="badge-minimal active mb-3">
+                            Precio: ${{ tarotista.precio_por_sesion|floatformat:0 }} por sesión
+                        </span>
+
+                        <!-- Enlace de acción (Ajusta la URL si es necesario) -->
+                        <a href="{% url 'core:detalle_tarotista' tarotista.id %}" class="btn-gold py-2 px-4 mt-3">
+                            Ver Horarios y Contactar
+                        </a>
                         
                     </div>
                 </div>
+                
                 {% empty %}
-                <div class="col-12 text-center">
-                    <p class="text-gold">Actualmente no tenemos tarotistas disponibles. ¡Estamos preparando nuevas incorporaciones!</p>
+                <div class="col-12 text-center mt-5">
+                    <p class="lead text-gold">Actualmente no tenemos tarotistas disponibles. ¡Estamos preparando nuevas incorporaciones!</p>
                 </div>
                 {% endfor %}
                 
@@ -64,7 +85,49 @@
 </div>
 
 <style>
-/* Estilo para dar un borde dorado a las imágenes circulares */
+/* Estilos necesarios para las tarjetas y botones */
+.hero-title {
+    color: var(--accent-gold, #d4af37);
+    font-weight: 700;
+}
+.text-gold {
+    color: var(--accent-gold, #d4af37);
+}
+
+.card-minimal {
+    background-color: var(--bg-card, #2c3e50);
+    border: 1px solid var(--border-light, #4a637a);
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s;
+}
+
+.card-minimal:hover {
+    transform: translateY(-5px);
+}
+
+.badge-minimal {
+    background: rgba(212, 175, 55, 0.2);
+    color: var(--accent-gold, #d4af37);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.btn-gold {
+    background-color: var(--accent-gold, #d4af37);
+    color: var(--bg-dark, #1f2937);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.btn-gold:hover {
+    background-color: #f0c541;
+}
+
 .rounded-circle img {
     border: 2px solid rgba(212, 175, 55, 0.3);
 }
