@@ -72,7 +72,6 @@
 
     // Función para obtener el CSRF token de Django
     function getCookie(name) {
-        // ... (misma función de antes)
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
             const cookies = document.cookie.split(';');
@@ -90,7 +89,7 @@
 
 
     // ----------------------------------------------------
-    // FUNCIÓN PARA AGREGAR DISPONIBILIDAD DESDE EL FORMULARIO
+    // FUNCIÓN PARA AGREGAR DISPONIBILIDAD DESDE EL FORMULARIO (CORREGIDA)
     // ----------------------------------------------------
     function agregarDisponibilidad() {
         const startTime = document.getElementById('start-time').value;
@@ -101,11 +100,29 @@
             return;
         }
         
+        // Convertir a objeto Date para verificación y cálculo del día de la semana
+        const startDate = new Date(startTime);
+        const endDate = new Date(endTime);
+
         // Verifica que la hora de fin sea posterior a la de inicio
-        if (new Date(endTime) <= new Date(startTime)) {
+        if (endDate <= startDate) {
             alert("La hora de fin debe ser posterior a la hora de inicio.");
             return;
         }
+        
+        // *** CÁLCULO DEL DÍA DE LA SEMANA ***
+        // getDay() devuelve: 0=Domingo, 1=Lunes, ..., 6=Sábado (Estándar JS).
+        // Asumimos que tu modelo Django usa el estándar Python: 0=Lunes, 1=Martes... 6=Domingo.
+        let diaSemanaJS = startDate.getDay();
+        let diaSemana;
+        
+        // Mapeo de JS (0=Dom, 1=Lun) a Python (0=Lun, 1=Mar)
+        if (diaSemanaJS === 0) {
+            diaSemana = 6; // Domingo (JS 0) -> Django 6
+        } else {
+            diaSemana = diaSemanaJS - 1; // Lunes (JS 1) -> Django 0, Martes (JS 2) -> Django 1, etc.
+        }
+        // **********************************
 
         // Envío AJAX
         fetch(disponibilidadUrl, { 
@@ -117,7 +134,8 @@
             body: JSON.stringify({
                 start_time: startTime, // Formato YYYY-MM-DDTHH:MM
                 end_time: endTime,
-                action: 'add' // Indicamos al backend que es una acción de adición
+                dia_semana: diaSemana, // <--- ¡CAMBIO CLAVE AÑADIDO!
+                action: 'add' 
             })
         })
         .then(response => response.json())
@@ -131,7 +149,7 @@
                     end: endTime,
                     color: '#28a745', 
                     extendedProps: {
-                        is_reserved: false // Aseguramos que se marque como no reservado
+                        is_reserved: false 
                     }
                 });
                 alert('Horario marcado como disponible.');
@@ -159,9 +177,6 @@
             initialView: 'timeGridWeek',
             locale: 'es',
             allDaySlot: false,
-            // Quitamos slotMinTime/slotMaxTime para que se adapte mejor a horarios con minutos
-            // slotMinTime: "08:00:00", 
-            // slotMaxTime: "20:00:00",
             slotDuration: '00:30:00', // Seteamos la grilla para que sea visible en intervalos de 30 minutos
             headerToolbar: {
                 left: 'prev,next today',
@@ -169,7 +184,6 @@
                 right: 'timeGridWeek,timeGridDay,listWeek'
             },
             events: eventos,
-            // ********** CAMBIO CLAVE: DESACTIVAMOS LA SELECCIÓN **********
             selectable: false, // El calendario solo debe mostrar, no permitir seleccionar rangos
             
             eventClick: function(info) {
@@ -200,17 +214,17 @@
                         });
                     }
                 } else if (info.event.extendedProps.is_reserved) {
-                     alert('Este horario ya está reservado y no puede ser eliminado desde aquí.');
+                    alert('Este horario ya está reservado y no puede ser eliminado desde aquí.');
                 }
             },
             eventDidMount: function(info) {
                 // Para cambiar el color de los eventos 'Reservados'
                 if (info.event.extendedProps.is_reserved) {
-                     info.el.style.backgroundColor = '#dc3545'; // Rojo para reservados
-                     info.el.style.borderColor = '#dc3545'; 
+                    info.el.style.backgroundColor = '#dc3545'; // Rojo para reservados
+                    info.el.style.borderColor = '#dc3545'; 
                 } else {
-                     info.el.style.backgroundColor = '#28a745'; // Verde para disponibles
-                     info.el.style.borderColor = '#28a745'; 
+                    info.el.style.backgroundColor = '#28a745'; // Verde para disponibles
+                    info.el.style.borderColor = '#28a745'; 
                 }
             }
         });
@@ -220,7 +234,7 @@
 </script>
 
 <style>
-/* ... (Mismos estilos de antes) ... */
+/* ... (Estilos CSS) ... */
 .fc .fc-toolbar-title {
     color: var(--accent-gold);
     font-weight: 600;
