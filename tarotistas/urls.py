@@ -1,22 +1,15 @@
-# usuarios/urls.py
-
 from django.urls import path
 from . import views
 
-app_name = 'usuarios'
+app_name = 'tarotistas'
 
 urlpatterns = [
-    # ... rutas de registro/perfil (manteniendo las tuyas) ...
-    path('registro/', views.registro, name='registro'),
-    path('perfil/', views.perfil, name='perfil'),
-    path('perfil/editar/', views.editar_perfil, name='editar_perfil'),
+    # Rutas existentes
+    path('tarotistas/', views.lista_tarotistas, name='lista_tarotistas'),
+    path('tarotista/<int:tarotista_id>/', views.perfil_tarotista, name='perfil_tarotista'),
+    path('clientes/', views.lista_clientes, name='lista_clientes'),
+    path('bloquear-usuario/<int:usuario_id>/', views.bloquear_usuario, name='bloquear_usuario'),
     
-    # Rutas de Administración de Usuarios
-    path('admin/lista/', views.usuarios_lista, name='usuarios_lista'),
-    path('admin/editar/<int:usuario_id>/', views.editar_usuario, name='editar_usuario'),
-    path('admin/eliminar/<int:usuario_id>/', views.eliminar_usuario, name='eliminar_usuario'),
-
-    # Rutas de Baneo
-    path('admin/banear/<int:usuario_id>/', views.banear_usuario, name='banear_usuario'),
-    path('admin/desbanear/<int:usuario_id>/', views.desbanear_usuario, name='desbanear_usuario'),
+    # === RUTA DEL CALENDARIO AGREGADA ===
+    path('calendario/', views.calendario, name='calendario'),
 ]
