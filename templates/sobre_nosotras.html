@@ -1,72 +1,17 @@
-{% extends 'base.html' %}
+Conoce a nuestras tarotistas
+{% if tarotistas %}
+{% for tarotista in tarotistas %}
+{{ tarotista.usuario.get_full_name }}
+Especialidad: {{ tarotista.especialidad }}
 
-{% block content %}
-<div class="container mt-5 pt-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="text-center mb-5">
-                <h1 class="hero-title">Sobre Nosotras</h1>
-            </div>
-            
-            <div class="card-minimal mb-5">
-                <div class="text-center mb-4">
-                    <h3 class="text-gold">Nuestra Misión</h3>
-                </div>
-                <p class="text-light text-center">
-                    Nuestra misión es ofrecer un espacio de guía espiritual y autoconocimiento a través del tarot y otras prácticas esotéricas, entregando a cada persona una experiencia clara, cercana y respetuosa que le ayude a comprender su presente y tomar decisiones con confianza.
-                </p>
-            </div>
-            
-            <div class="card-minimal mb-5">
-                <div class="text-center mb-4">
-                    <h3 class="text-gold">Nuestra Visión</h3>
-                </div>
-                <p class="text-light text-center">
-                    Nuestra visión es convertirnos en una plataforma de referencia en orientación espiritual online, donde el tarot y la sabiduría ancestral se unan con la tecnología para acompañar a las personas en su crecimiento personal, siempre con ética, empatía y autenticidad.
-                </p>
-            </div>
-            
-            <div class="text-center mb-4">
-                <h3 class="text-gold">Conoce a nuestras tarotistas</h3>
-            </div>
-            
-            <div class="row justify-content-center">
-                
-                {% for tarotista in tarotistas %}
-                <div class="col-md-5 mb-4">
-                    <div class="card-minimal text-center h-100">
-                        <div class="mb-3">
-                            <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center" 
-                                style="width: 120px; height: 120px; margin: 0 auto 1rem; overflow: hidden;">
-                                
-                                <img src="{{ tarotista.url_imagen }}" alt="Foto de {{ tarotista.nombre }}" 
-                                     style="width: 100%; height: 100%; object-fit: cover; border: 2px solid rgba(212, 175, 55, 0.3);">
-                            </div>
-                        </div>
-                        
-                        <h4 class="text-gold mb-3">{{ tarotista.nombre }}</h4>
-                        
-                        <p class="text-light">
-                            {{ tarotista.descripcion }}
-                        </p>
-                        
-                    </div>
-                </div>
-                {% empty %}
-                <div class="col-12 text-center">
-                    <p class="text-gold">Actualmente no tenemos tarotistas disponibles. ¡Estamos preparando nuevas incorporaciones!</p>
-                </div>
-                {% endfor %}
-                
-            </div>
-        </div>
-    </div>
-</div>
+Años de Experiencia: {{ tarotista.experiencia }}
 
-<style>
-/* Estilo para dar un borde dorado a las imágenes circulares */
-.rounded-circle img {
-    border: 2px solid rgba(212, 175, 55, 0.3);
-}
-</style>
-{% endblock %}
+Precio: ${{ tarotista.precio_por_sesion }}
+
+Calificación: {{ tarotista.calificacion }}
+
+{% endfor %}
+{% else %}
+Actualmente no tenemos tarotistas disponibles. ¡Estamos preparando nuevas incorporaciones!
+
+{% endif %}
