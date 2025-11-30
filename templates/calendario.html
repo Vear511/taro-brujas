@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Crimson+Text&display=swap" rel="stylesheet">
     
+    {% load static %}
     <link href="{% static 'css/styles.css' %}" rel="stylesheet"> 
     
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
@@ -26,7 +27,6 @@
         }
 
         /* Sobreescribir colores de FullCalendar para el tema oscuro usando tus variables */
-        /* Si FullCalendar detecta el tema oscuro (que lo hace por defecto a veces), estos ayudan: */
         .fc-theme-dark .fc-toolbar-title {
             color: var(--text-light, #f0f0f0) !important;
         }
@@ -51,7 +51,6 @@
         .form-select:focus {
             background-color: #333;
             color: var(--text-light);
-            /* Usamos tu color dorado para el focus */
             border-color: var(--accent-gold, #d4af37); 
             box-shadow: 0 0 0 0.25rem rgba(212, 175, 55, 0.25); 
         }
@@ -62,6 +61,7 @@
     
 </head>
 <body class="p-4 p-md-5">
+    {% csrf_token %} 
 
     <div id="app" class="container-fluid" style="max-width: 900px;">
         <h1 class="text-center text-gold mb-4">📅 Gestor de Horarios Disponibles</h1>
@@ -69,7 +69,7 @@
 
         <div class="card-minimal p-4">
             <h2 class="h5 text-light mb-4">Añadir Nuevo Horario</h2>
-            <div id="loading-auth" class="text-center text-purple mb-4 hidden">Inicializando la base de datos...</div>
+            <div id="loading-data" class="text-center text-purple mb-4 hidden">Cargando y sincronizando horarios con el servidor...</div>
 
             <div class="row g-3 align-items-end">
                 <div class="col-6 col-md-2">
@@ -94,7 +94,7 @@
                 </div>
             </div>
 
-            <button id="add-schedule-btn" class="mt-4 w-100 btn-gold" disabled>
+            <button id="add-schedule-btn" class="mt-4 w-100 btn-gold">
                 Guardar Horario Disponible
             </button>
 
@@ -105,108 +105,49 @@
             <div id="calendar" class="w-100"></div>
         </div>
         
-        <p class="text-small text-muted mt-4 text-center">ID de Usuario: <span id="user-id-display">Cargando...</span> | ID de App: <span id="app-id-display">Cargando...</span></p>
+        <p class="text-small text-muted mt-4 text-center">Gestión de disponibilidad</p>
 
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            signInAnonymously, 
-            signInWithCustomToken, 
-            onAuthStateChanged 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            query, 
-            onSnapshot, 
-            deleteDoc, 
-            doc,
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script>
         
-        // Configuración y variables globales del entorno Canvas
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // ------------------------------------------
+        // 0. CONFIGURACIÓN Y UTILIDADES DE DJANGO
+        // ------------------------------------------
+        
+        // **IMPORTANTE:** Debes definir estas URLs en tu archivo urls.py de Django
+        const URLS = {
+            LOAD: '{% url "schedule:load_schedule" %}', // URL para GET (cargar)
+            ADD: '{% url "schedule:add_schedule" %}',   // URL para POST (guardar)
+            DELETE: '{% url "schedule:delete_schedule" %}', // URL base para DELETE (ej: /api/horarios/123/eliminar/)
+        };
 
-        let db, auth, userId = null;
-        let calendar = null;
-        const SCHEDULE_COLLECTION = 'available_slots';
+        // Función utilitaria para obtener el token CSRF de Django
+        function getCsrfToken() {
+            const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]');
+            return csrfToken ? csrfToken.value : '';
+        }
 
         // Elementos del DOM
         const calendarEl = document.getElementById('calendar');
-        const userIdDisplay = document.getElementById('user-id-display');
-        const appIdDisplay = document.getElementById('app-id-display');
-        const loadingAuthEl = document.getElementById('loading-auth');
+        const loadingDataEl = document.getElementById('loading-data');
         const errorMessageEl = document.getElementById('error-message');
         const addScheduleBtn = document.getElementById('add-schedule-btn');
+        
+        let calendar = null;
 
-        // Función de utilidad para mostrar errores
         function displayError(message) {
             errorMessageEl.textContent = message;
             errorMessageEl.classList.remove('hidden');
-            setTimeout(() => errorMessageEl.classList.add('hidden'), 5000);
+            setTimeout(() => errorMessageEl.classList.add('hidden'), 7000);
         }
-
-        // 1. INICIALIZACIÓN DE FIREBASE Y AUTENTICACIÓN
-        async function initFirebase() {
-            loadingAuthEl.classList.remove('hidden');
-            try {
-                // Configurar el nivel de log para depuración (opcional)
-                setLogLevel('debug'); 
-
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-
-                appIdDisplay.textContent = appId;
-
-                // Autenticación con el token proporcionado o anónimamente
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                // Esperar a que el estado de autenticación cambie
-                onAuthStateChanged(auth, (user) => {
-                    loadingAuthEl.classList.add('hidden');
-                    if (user) {
-                        userId = user.uid;
-                        userIdDisplay.textContent = userId;
-                        addScheduleBtn.disabled = false;
-                        // Una vez autenticado, inicializar el calendario y listeners de datos
-                        initCalendar();
-                        setupDataListener();
-                        setupFormListeners();
-                    } else {
-                        userIdDisplay.textContent = 'No autenticado';
-                        addScheduleBtn.disabled = true;
-                        displayError('Error de autenticación. No se puede cargar el usuario.');
-                    }
-                });
-
-            } catch (error) {
-                loadingAuthEl.classList.add('hidden');
-                console.error("Firebase Initialization/Auth Error:", error);
-                displayError("Error crítico al inicializar Firebase: " + error.message);
-                addScheduleBtn.disabled = true;
-            }
-        }
-
-        // 2. CONFIGURACIÓN DE FIRESTORE
-        function getCollectionRef() {
-            // Usamos la colección privada por usuario
-            return collection(db, `artifacts/${appId}/users/${userId}/${SCHEDULE_COLLECTION}`);
-        }
-
-        // 3. FULLCALENDAR
+        
+        // ------------------------------------------
+        // 1. GESTIÓN DE FULLCALENDAR
+        // ------------------------------------------
+        
         function initCalendar() {
-            if (!calendarEl || calendar) return; // Ya inicializado o elemento no encontrado
+            if (!calendarEl || calendar) return;
 
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'timeGridWeek',
@@ -219,101 +160,147 @@
                     center: 'title',
                     right: 'timeGridWeek,timeGridDay'
                 },
+                events: fetchEventsFromDjango, // Usamos una función para cargar eventos
                 editable: false, 
                 selectable: false, 
-                events: [], 
-                eventContent: function(arg) {
-                    return { html: '<div class="p-1 leading-tight">✅ Disponible</div>' };
-                },
+                
+                // Manejar la eliminación de un slot al hacer clic en él
                 eventClick: function(info) {
-                    const docId = info.event.id;
+                    // El ID del evento debe ser el PK (Primary Key) de tu modelo Django
+                    const scheduleId = info.event.id; 
                     const confirmation = confirm(`¿Deseas eliminar este horario disponible?\nDesde: ${info.event.startStr}\nHasta: ${info.event.endStr}`);
                     
                     if (confirmation) {
-                        deleteSchedule(docId);
+                        deleteSchedule(scheduleId);
                     }
                 }
             });
 
             calendar.render();
         }
-
-        // 4. LECTURA DE DATOS EN TIEMPO REAL (onSnapshot)
-        function setupDataListener() {
-            if (!db || !userId) return;
-
-            const q = query(getCollectionRef());
-
-            onSnapshot(q, (snapshot) => {
-                const firebaseEvents = [];
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    firebaseEvents.push({
-                        id: doc.id, 
-                        title: 'Disponible',
-                        start: data.inicio,
-                        end: data.fin,
-                        classNames: ['fc-event-available'],
-                        allDay: false
-                    });
+        
+        // Función para cargar eventos desde Django (Usada por FullCalendar)
+        async function fetchEventsFromDjango(fetchInfo, successCallback, failureCallback) {
+             loadingDataEl.classList.remove('hidden');
+            try {
+                // Fetch a tu endpoint de listado de horarios
+                const response = await fetch(URLS.LOAD, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(), // Incluir el token CSRF, aunque sea GET
+                        'Content-Type': 'application/json',
+                    }
                 });
 
-                if (calendar) {
-                    calendar.removeAllEvents();
-                    calendar.addEventSource(firebaseEvents);
-                    
-                    if (firebaseEvents.length > 0) {
-                        const initialDate = firebaseEvents[0].start.split('T')[0];
-                        calendar.gotoDate(initialDate);
-                    } else {
-                        calendar.gotoDate(new Date());
-                    }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            }, (error) => {
-                console.error("Error al escuchar datos de Firestore:", error);
+
+                const data = await response.json();
+                
+                // Transformar los datos de Django al formato de FullCalendar
+                const fcEvents = data.map(item => ({
+                    // item.id debe ser el PK del modelo Django
+                    id: item.id, 
+                    title: 'Disponible',
+                    start: item.inicio, // Ejemplo: '2025-12-01T10:00:00'
+                    end: item.fin,       // Ejemplo: '2025-12-01T11:00:00'
+                    classNames: ['fc-event-available'],
+                    allDay: false
+                }));
+                
+                successCallback(fcEvents);
+                
+            } catch (error) {
+                console.error("Error al cargar horarios desde Django:", error);
                 displayError("Error al cargar horarios: " + error.message);
-            });
+                failureCallback(error);
+            } finally {
+                 loadingDataEl.classList.add('hidden');
+            }
         }
 
-        // 5. ESCRITURA de datos (ADD)
-        async function saveSchedule(startTime, endTime) {
-            if (!db || !userId) {
-                displayError("Error: Usuario no autenticado para guardar datos.");
-                return;
-            }
 
+        // ------------------------------------------
+        // 2. COMUNICACIÓN CON DJANGO (CREATE/DELETE)
+        // ------------------------------------------
+
+        // Guardar un nuevo horario (POST)
+        async function saveSchedule(startTime, endTime) {
+            loadingDataEl.classList.remove('hidden');
             try {
-                await addDoc(getCollectionRef(), {
-                    inicio: startTime,
-                    fin: endTime,
-                    reservado: false, 
-                    createdAt: new Date().toISOString()
+                const response = await fetch(URLS.ADD, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        inicio: startTime,
+                        fin: endTime,
+                        // Puedes añadir más campos que necesite tu modelo de Django
+                        // user_id: {{ request.user.id }}, 
+                    })
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+
+                // Si tiene éxito, FullCalendar recarga automáticamente los eventos
+                if (calendar) {
+                    calendar.refetchEvents();
+                }
                 alert('Horario disponible guardado con éxito!');
+                
             } catch (e) {
-                console.error("Error adding document: ", e);
+                console.error("Error al guardar en Django: ", e);
                 displayError("Error al guardar el horario: " + e.message);
+            } finally {
+                loadingDataEl.classList.add('hidden');
             }
         }
         
-        // 6. ELIMINACIÓN DE DATOS (DELETE)
-        async function deleteSchedule(docId) {
-            if (!db || !userId) {
-                displayError("Error: Usuario no autenticado para eliminar datos.");
-                return;
-            }
-
+        // Eliminar un horario (DELETE)
+        async function deleteSchedule(scheduleId) {
+            loadingDataEl.classList.remove('hidden');
             try {
-                await deleteDoc(doc(getCollectionRef(), docId));
+                // Construir la URL de DELETE usando el ID del horario
+                // (Ej: /api/horarios/123/eliminar/)
+                const deleteUrl = URLS.DELETE.replace('0', scheduleId); 
+
+                const response = await fetch(deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+
+                // Si tiene éxito, FullCalendar recarga automáticamente los eventos
+                if (calendar) {
+                    calendar.refetchEvents();
+                }
                 alert('Horario disponible eliminado con éxito.');
+                
             } catch (e) {
-                console.error("Error deleting document: ", e);
+                console.error("Error al eliminar en Django: ", e);
                 displayError("Error al eliminar el horario: " + e.message);
+            } finally {
+                loadingDataEl.classList.add('hidden');
             }
         }
 
+        // ------------------------------------------
+        // 3. LÓGICA DE FORMULARIO (Sin cambios, es lógica pura JS)
+        // ------------------------------------------
 
-        // 7. LÓGICA DE FORMULARIO
         const selectYear = document.getElementById('select-year');
         const selectMonth = document.getElementById('select-month');
         const selectDay = document.getElementById('select-day');
@@ -406,12 +393,22 @@
                     return;
                 }
                 
+                // Llamar a la función de guardado en Django
                 saveSchedule(startDateTimeString, endDateTimeString);
             });
         }
+        
+        // ------------------------------------------
+        // 4. INICIO DE LA APLICACIÓN
+        // ------------------------------------------
 
-        // Iniciar la aplicación al cargar el script
-        initFirebase();
+        // Inicializar al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            setupFormListeners();
+            initCalendar();
+            // FullCalendar llama a fetchEventsFromDjango internamente al renderizarse
+        });
+
 
     </script>
     
