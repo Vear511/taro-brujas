@@ -194,3 +194,50 @@ def calendario_disponibilidad_view(request):
         'horarios_eventos_json': horarios_eventos_json 
     }
     return render(request, 'tu_app/calendario.html', context)
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt # Se usa para simplificar en desarrollo, pero es mejor usar el token.
+import json
+from datetime import datetime
+from .models import Disponibilidad
+
+@require_POST
+@csrf_exempt # Quita esto si puedes configurar correctamente el CSRF token en el frontend
+def manejar_disponibilidad_ajax(request):
+    try:
+        data = json.loads(request.body)
+        action = data.get('action')
+
+        if action == 'add':
+            # Lógica para agregar un nuevo horario
+            start_time_str = data.get('start_time')
+            end_time_str = data.get('end_time')
+
+            # Convertir las cadenas de tiempo (YYYY-MM-DDTHH:MM) a objetos datetime
+            start_dt = datetime.fromisoformat(start_time_str)
+            end_dt = datetime.fromisoformat(end_time_str)
+
+            # Crear el nuevo objeto de disponibilidad
+            nueva_disponibilidad = Disponibilidad.objects.create(
+                usuario=request.user, # Asume que el usuario está autenticado
+                hora_inicio=start_dt,
+                hora_fin=end_dt,
+                reservado=False
+            )
+            return JsonResponse({'success': True, 'message': 'Horario añadido', 'event_id': nueva_disponibilidad.pk})
+
+        elif action == 'delete':
+            # Lógica para eliminar un horario existente
+            event_id = data.get('event_id')
+            horario = Disponibilidad.objects.get(pk=event_id, usuario=request.user, reservado=False)
+            horario.delete()
+            return JsonResponse({'success': True, 'message': 'Horario eliminado'})
+
+        else:
+            return JsonResponse({'success': False, 'error': 'Acción no válida'}, status=400)
+
+    except Disponibilidad.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Horario no encontrado o ya reservado.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
