@@ -4,83 +4,38 @@
 <div class="container mt-5 pt-4">
     <div class="row justify-content-center">
         <div class="col-lg-10">
-            <!-- Título principal -->
-            <div class="text-center mb-5">
-                <h1 class="hero-title">Sobre Nosotras</h1>
-            </div>
-            
-            <!-- Misión -->
-            <div class="card-minimal mb-5">
-                <div class="text-center mb-4">
-                    <h3 class="text-gold">Nuestra Misión</h3>
-                </div>
-                <p class="text-light text-center">
-                    Nuestra misión es ofrecer un espacio de guía espiritual y autoconocimiento a través del tarot y otras prácticas esotéricas, entregando a cada persona una experiencia clara, cercana y respetuosa que le ayude a comprender su presente y tomar decisiones con confianza.
-                </p>
-            </div>
-            
-            <!-- Visión -->
-            <div class="card-minimal mb-5">
-                <div class="text-center mb-4">
-                    <h3 class="text-gold">Nuestra Visión</h3>
-                </div>
-                <p class="text-light text-center">
-                    Nuestra visión es convertirnos en una plataforma de referencia en orientación espiritual online, donde el tarot y la sabiduría ancestral se unan con la tecnología para acompañar a las personas en su crecimiento personal, siempre con ética, empatía y autenticidad.
-                </p>
-            </div>
-            
-            <!-- Tarotistas -->
             <div class="text-center mb-4">
                 <h3 class="text-gold">Conoce a nuestras tarotistas</h3>
             </div>
             
             <div class="row justify-content-center">
-                <!-- Tarotista 1 - María -->
+                {% for tarotista in tarotistas %}
                 <div class="col-md-5 mb-4">
                     <div class="card-minimal text-center h-100">
                         <div class="mb-3">
-                            <!-- Espacio para imagen (puedes agregar luego) -->
-                            <div class="placeholder-image bg-dark border-minimal rounded-circle mx-auto d-flex align-items-center justify-content-center" 
-                                 style="width: 120px; height: 120px; margin: 0 auto 1rem;">
-                                <span class="text-gold" style="font-size: 3rem;">🔮</span>
+                            <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center" 
+                                style="width: 120px; height: 120px; margin: 0 auto 1rem; overflow: hidden;">
+                                <img src="{{ tarotista.url_imagen }}" alt="Foto de {{ tarotista.nombre }}" 
+                                     style="width: 100%; height: 100%; object-fit: cover; border: 2px solid rgba(212, 175, 55, 0.3);">
                             </div>
                         </div>
-                        <h4 class="text-gold mb-3">María</h4>
+                        <h4 class="text-gold mb-3">{{ tarotista.nombre }}</h4>
                         <p class="text-light">
-                            Soy tarotista y mi misión es acompañarte a través de la lectura de las cartas del tarot para que encuentres claridad en tu presente, comprensión de tu pasado y orientación hacia tu futuro. No busco predecir de manera absoluta, sino entregarte una guía que te ayude a reflexionar y tomar decisiones más conscientes.
+                            {{ tarotista.descripcion }}
                         </p>
-                        <p class="text-light mt-3">
-                            Con empatía e intuición, interpreto los mensajes de las cartas para iluminar tu camino y mostrarte nuevas perspectivas en los momentos en que más lo necesites.
-                        </p>
-                    </div>
-                </div>
-                
-                <!-- Tarotista 2 - María (temporal) -->
-                <div class="col-md-5 mb-4">
-                    <div class="card-minimal text-center h-100">
-                        <div class="mb-3">
-                            <!-- Espacio para imagen (puedes agregar luego) -->
-                            <div class="placeholder-image bg-dark border-minimal rounded-circle mx-auto d-flex align-items-center justify-content-center" 
-                                 style="width: 120px; height: 120px; margin: 0 auto 1rem;">
-                                <span class="text-gold" style="font-size: 3rem;">💫</span>
-                            </div>
                         </div>
-                        <h4 class="text-gold mb-3">María</h4>
-                        <p class="text-light">
-                            Soy tarotista y mi misión es acompañarte a través de la lectura de las cartas del tarot para que encuentres claridad en tu presente, comprensión de tu pasado y orientación hacia tu futuro. No busco predecir de manera absoluta, sino entregarte una guía que te ayude a reflexionar y tomar decisiones más conscientes.
-                        </p>
-                        <p class="text-light mt-3">
-                            Con empatía e intuición, interpreto los mensajes de las cartas para iluminar tu camino y mostrarte nuevas perspectivas en los momentos en que más lo necesites.
-                        </p>
-                    </div>
                 </div>
-            </div>
+                {% endfor %}
+                </div>
         </div>
     </div>
 </div>
 
 <style>
-.placeholder-image {
+/* NOTA: La clase .placeholder-image ya no es necesaria
+Si deseas mantener el borde:
+*/
+.rounded-circle img {
     border: 2px solid rgba(212, 175, 55, 0.3);
 }
 </style>
