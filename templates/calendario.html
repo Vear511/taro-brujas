@@ -66,11 +66,9 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <script>
-    let calendar; // Hacemos la variable global para poder usarla en agregarDisponibilidad()
-    // Definimos la URL de AJAX usando la etiqueta URL de Django
+    let calendar; 
     const disponibilidadUrl = "{% url 'core:manejar_disponibilidad_ajax' %}"; 
 
-    // Función para obtener el CSRF token de Django
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -89,7 +87,7 @@
 
 
     // ----------------------------------------------------
-    // FUNCIÓN PARA AGREGAR DISPONIBILIDAD DESDE EL FORMULARIO (CORREGIDA)
+    // FUNCIÓN PARA AGREGAR DISPONIBILIDAD DESDE EL FORMULARIO (CORREGIDA con mapeo simple)
     // ----------------------------------------------------
     function agregarDisponibilidad() {
         const startTime = document.getElementById('start-time').value;
@@ -110,18 +108,12 @@
             return;
         }
         
-        // *** CÁLCULO DEL DÍA DE LA SEMANA ***
+        // *** CORRECCIÓN CLAVE: CÁLCULO DEL DÍA DE LA SEMANA ***
         // getDay() devuelve: 0=Domingo, 1=Lunes, ..., 6=Sábado (Estándar JS).
-        // Asumimos que tu modelo Django usa el estándar Python: 0=Lunes, 1=Martes... 6=Domingo.
-        let diaSemanaJS = startDate.getDay();
-        let diaSemana;
-        
-        // Mapeo de JS (0=Dom, 1=Lun) a Python (0=Lun, 1=Mar)
-        if (diaSemanaJS === 0) {
-            diaSemana = 6; // Domingo (JS 0) -> Django 6
-        } else {
-            diaSemana = diaSemanaJS - 1; // Lunes (JS 1) -> Django 0, Martes (JS 2) -> Django 1, etc.
-        }
+        // Si tu modelo Django/DB utiliza 0=Domingo, usamos este valor directamente.
+        let diaSemana = startDate.getDay(); 
+        // Si startDate no fuera válido (raro, ya que el input es requerido), diaSemana sería NaN o similar, 
+        // lo que llevaría al error de la BD. Asumimos que el input 'datetime-local' funciona correctamente.
         // **********************************
 
         // Envío AJAX
@@ -132,9 +124,9 @@
                 'X-CSRFToken': csrftoken 
             },
             body: JSON.stringify({
-                start_time: startTime, // Formato YYYY-MM-DDTHH:MM
+                start_time: startTime, 
                 end_time: endTime,
-                dia_semana: diaSemana, // <--- ¡CAMBIO CLAVE AÑADIDO!
+                dia_semana: diaSemana, // <--- ¡VALOR CORREGIDO!
                 action: 'add' 
             })
         })
@@ -170,24 +162,22 @@
     document.addEventListener('DOMContentLoaded', function() {
         var calendarEl = document.getElementById('calendar');
 
-        // Convierte horarios de Django a JS
         var eventos = JSON.parse('{{ horarios_eventos_json|safe }}' || '[]');
 
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'timeGridWeek',
             locale: 'es',
             allDaySlot: false,
-            slotDuration: '00:30:00', // Seteamos la grilla para que sea visible en intervalos de 30 minutos
+            slotDuration: '00:30:00',
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
                 right: 'timeGridWeek,timeGridDay,listWeek'
             },
             events: eventos,
-            selectable: false, // El calendario solo debe mostrar, no permitir seleccionar rangos
+            selectable: false,
             
             eventClick: function(info) {
-                // Mantenemos la lógica de eliminación, asumiendo que solo se pueden eliminar los no reservados
                 if(info.event.title === "Disponible" && !info.event.extendedProps.is_reserved) { 
                     let confirmar = confirm(`¿Deseas eliminar este horario disponible?\nDesde: ${info.event.startStr.slice(0, 16).replace('T', ' ')}\nHasta: ${info.event.endStr.slice(0, 16).replace('T', ' ')}`);
                     
@@ -218,12 +208,11 @@
                 }
             },
             eventDidMount: function(info) {
-                // Para cambiar el color de los eventos 'Reservados'
                 if (info.event.extendedProps.is_reserved) {
-                    info.el.style.backgroundColor = '#dc3545'; // Rojo para reservados
+                    info.el.style.backgroundColor = '#dc3545'; 
                     info.el.style.borderColor = '#dc3545'; 
                 } else {
-                    info.el.style.backgroundColor = '#28a745'; // Verde para disponibles
+                    info.el.style.backgroundColor = '#28a745'; 
                     info.el.style.borderColor = '#28a745'; 
                 }
             }
@@ -234,7 +223,6 @@
 </script>
 
 <style>
-/* ... (Estilos CSS) ... */
 .fc .fc-toolbar-title {
     color: var(--accent-gold);
     font-weight: 600;
