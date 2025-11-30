@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 class Usuario(AbstractUser):
+    # Campos existentes
     rut = models.CharField(
         max_length=12,  # largo típico de RUT chileno
         unique=True,    # no puede repetirse
@@ -16,9 +17,21 @@ class Usuario(AbstractUser):
     apodo = models.CharField(max_length=50, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)
     
+    # === CAMPO DE BANEO AGREGADO ===
+    # Usamos IntegerField con 0/1 para seguir tu requerimiento. 
+    # 0 = No baneado, 1 = Baneado
+    ban = models.IntegerField(default=0)
+    # ===============================
+    
     def __str__(self):
         return self.username
     
     @property
     def es_tarotista(self):
+        # Este método se mantiene sin cambios y funciona correctamente
         return hasattr(self, 'tarotista')
+
+    @property
+    def is_banned(self):
+        """Devuelve True si el usuario está baneado (ban == 1)."""
+        return self.ban == 1
