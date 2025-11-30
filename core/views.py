@@ -159,3 +159,38 @@ def eliminar_reporte(request, reporte_id):
         'reporte': reporte,
     }
     return render(request, 'confirmar_eliminar_reporte.html', context)
+
+import json
+from django.shortcuts import render
+from .models import Disponibilidad # Asume que tienes un modelo llamado Disponibilidad
+
+def calendario_disponibilidad_view(request):
+    # 1. Obtener los eventos del usuario
+    horarios = Disponibilidad.objects.filter(usuario=request.user).all()
+    
+    # 2. Formatear para FullCalendar
+    eventos_fc = []
+    for horario in horarios:
+        eventos_fc.append({
+            'id': horario.pk, # Necesario para la eliminación
+            'title': 'Reservado' if horario.reservado else 'Disponible',
+            'start': horario.hora_inicio.isoformat(),
+            'end': horario.hora_fin.isoformat(),
+            'extendedProps': {
+                'is_reserved': horario.reservado # Propiedad extra para lógica de clic
+            }
+        })
+
+    # 3. Serializar a JSON
+    horarios_eventos_json = json.dumps(eventos_fc)
+
+    context = {
+        # Variables para las tarjetas de resumen (debes calcularlas)
+        'total_horarios': Disponibilidad.objects.filter(usuario=request.user).count(),
+        'horarios_disponibles': Disponibilidad.objects.filter(usuario=request.user, reservado=False).count(),
+        'horarios_reservados': Disponibilidad.objects.filter(usuario=request.user, reservado=True).count(),
+        
+        # La variable clave para el frontend
+        'horarios_eventos_json': horarios_eventos_json 
+    }
+    return render(request, 'tu_app/calendario.html', context)
