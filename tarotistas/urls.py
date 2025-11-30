@@ -11,5 +11,5 @@ urlpatterns = [
     path('bloquear-usuario/<int:usuario_id>/', views.bloquear_usuario, name='bloquear_usuario'),
     path('calendario/', views.calendario, name='calendario'),
     # En tu urls.py
-    path('sobre-nosotras/', views.sobre_nosotras_view, name='sobre_nosotras'),
+    path('sobre-nosotras/', views.sobre_nosotras, name='sobre_nosotras'),
 ]
