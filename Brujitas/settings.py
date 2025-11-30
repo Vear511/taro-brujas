@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import dj_database_url
+
 # Asegúrate de que dj_database_url esté instalado: pip install dj-database-url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -47,7 +48,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # Debe estar después de SecurityMiddleware
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'Brujitas.urls'
@@ -75,24 +76,20 @@ TEMPLATES = [
 WSGI_APPLICATION = 'Brujitas.wsgi.application'
 
 # -------------------------
-# BASE DE DATOS (Usando dj_database_url para seguridad en Railway)
+# BASE DE DATOS (Hardcodeada para diagnóstico - ¡TEMPORAL!)
 # -------------------------
 
-# Configuración por defecto (SQLite para desarrollo local)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# WARNING: ESTA URL CONTIENE CREDENCIALES Y DEBE ELIMINARSE DESPUÉS DE LA PRUEBA.
+DATABASE_URL_HARDCODED = 'postgresql://postgres:PXVoBhORsOECYeHxrwIbcELwJAsPmpor@hopper.proxy.rlwy.net:22112/railway'
 
-# Sobrescribir con PostgreSQL si la variable DATABASE_URL existe (Railway)
-if 'DATABASE_URL' in os.environ:
-    # dj-database-url parsea la URL y configura PostgreSQL automáticamente
-    DATABASES['default'] = dj_database_url.config(
-        conn_max_age=600, 
-        ssl_require=True # Necesario para la mayoría de los hosts de producción como Railway
+# Usamos dj_database_url.parse() para convertir la cadena en un diccionario
+DATABASES = {
+    'default': dj_database_url.parse(
+        DATABASE_URL_HARDCODED,
+        conn_max_age=600,
+        ssl_require=True # Necesario para Railway
     )
+}
 
 # -------------------------
 # VALIDADORES DE CONTRASEÑA
