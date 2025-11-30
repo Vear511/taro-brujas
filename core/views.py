@@ -169,8 +169,6 @@ def eliminar_reporte(request, reporte_id):
     }
     return render(request, 'confirmar_eliminar_reporte.html', context)
 
----
-
 # ==================== VISTAS DE DISPONIBILIDAD ====================
 
 @login_required # <--- NECESARIO para que request.user funcione
