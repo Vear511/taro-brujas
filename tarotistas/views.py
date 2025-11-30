@@ -4,8 +4,45 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from usuarios.models import Usuario
 from .models import Tarotista
 
+# --- NUEVA FUNCIÓN PARA LA PÁGINA "SOBRE NOSOTRAS" ---
+
+def sobre_nosotras_view(request):
+    """
+    Vista que recupera los datos combinados (JOIN) de las tablas Tarotista y Usuario
+    para mostrarlos en la sección "Conoce a nuestras tarotistas".
+    """
+    
+    # 1. Realiza la consulta JOIN usando select_related()
+    # Filtramos por cuentas de usuario activas y que sean tarotistas disponibles (opcional)
+    tarotistas_data = Tarotista.objects.select_related('usuario').filter(
+        usuario__is_active=True,
+        disponible=True # Filtra solo las tarotistas marcadas como disponibles
+    ).all()
+    
+    tarotistas_listos = []
+    
+    for t in tarotistas_data:
+        # 2. Mapea los campos al formato esperado por el template
+        tarotistas_listos.append({
+            'nombre': t.usuario.first_name, 
+            'descripcion': t.descripcion, 
+            # Asegúrate que la ruta de la imagen sea accesible. Usamos .url para campos FileField/ImageField
+            'url_imagen': t.usuario.avatar.url if t.usuario.avatar else '/static/img/placeholder_default.png', 
+        })
+        
+    context = {
+        'tarotistas': tarotistas_listos
+    }
+    
+    return render(request, 'sobre_nosotras.html', context)
+
+
+# ----------------------------------------------------
+# A continuación, el resto de tus vistas ya existentes:
+
 @user_passes_test(lambda u: u.is_staff)
 def agregar_tarotista(request):
+# ... (Tu código existente para agregar_tarotista) ...
     if request.method == 'POST':
         try:
             # Crear usuario
@@ -34,7 +71,7 @@ def agregar_tarotista(request):
             return render(request, 'agregar_tarotista.html', {
                 'error': f'Error al crear tarotista: {str(e)}'
             })
-    
+            
     return render(request, 'agregar_tarotista.html')
 
 def lista_tarotistas(request):
