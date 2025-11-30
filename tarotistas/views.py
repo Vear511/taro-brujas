@@ -71,13 +71,12 @@ def perfil_tarotista(request, tarotista_id):
     return render(request, 'perfil_tarotista.html', {'tarotista': tarotista})
 
 # Nota: Cambié el decorador de 'hasattr(u, 'tarotista')' a 'tarotista_required'
-@tarotista_required
+
 def lista_clientes(request):
     # Obtener todos los usuarios que no son tarotistas ni staff
     clientes = Usuario.objects.exclude(tarotista__isnull=False).exclude(is_staff=True)
     return render(request, 'lista_clientes.html', {'clientes': clientes})
 
-@tarotista_required
 def bloquear_usuario(request, usuario_id):
     usuario = get_object_or_404(Usuario, id=usuario_id)
     usuario.bloqueado = not usuario.bloqueado
@@ -88,7 +87,7 @@ def bloquear_usuario(request, usuario_id):
 # VISTA NUEVA: CALENDARIO
 # ---------------------------
 
-@tarotista_required
+
 def calendario(request):
     """
     Vista del calendario para la gestión de disponibilidad y citas de la tarotista.
