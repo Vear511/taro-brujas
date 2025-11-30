@@ -10,7 +10,6 @@
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
 </head>
 <body>
-    <!-- Header Minimalista -->
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}"> Brujitas</a>
@@ -29,15 +28,22 @@
                         {% if user.is_staff %}
                             <li class="nav-item"><a class="nav-link" href="/admin/">Panel Admin</a></li>
                         {% endif %}
+                        
                         {% if user.es_tarotista %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'calendario' %}">
+                                    📅 Calendario
+                                </a>
+                            </li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'mis_citas' %}">Mis Citas</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'core:reportes' %}">Reportes</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'tarotistas:lista_clientes' %}">Clientes</a></li>
+                            
                         {% else %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'agendar_cita' %}">Agendar Cita</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'mis_citas' %}">Mis Citas</a></li>
                         {% endif %}
-                    
+                        
                         <li class="nav-item"><a class="nav-link" href="{% url 'perfil' %}">Mi Perfil</a></li>
                         <li class="nav-item">
                             <form method="post" action="{% url 'logout' %}" class="d-inline">
@@ -55,7 +61,6 @@
     </nav>
 
     <main style="padding-top: 80px;">
-        <!-- Mensajes -->
         {% if messages %}
         <div class="container mt-4">
             {% for message in messages %}
@@ -67,7 +72,6 @@
         </div>
         {% endif %}
 
-        <!-- Contenido -->
         {% block content %}
         {% endblock %}
     </main>
