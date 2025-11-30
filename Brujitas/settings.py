@@ -1,4 +1,4 @@
-esta aqui el error?
+
 """
 Django settings for Brujitas project.
 """
