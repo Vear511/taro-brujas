@@ -1,109 +1,422 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Disponibilidad</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.8/index.global.min.js"></script>
 
-{% block content %}
-<div class="container mt-5 pt-4">
-    <!-- Título principal -->
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <h1 class="hero-title">📅 Calendario de Disponibilidad</h1>
-            <p class="text-muted">Marca tus horarios disponibles para que los clientes puedan agendar citas.</p>
+    <style>
+        /* Estilos personalizados para la estética */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        .container-card {
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+        .fc-event-available {
+            background-color: #34d399 !important; /* Green 400 */
+            border-color: #059669 !important; /* Green 600 */
+            color: white !important;
+            font-weight: 600;
+        }
+        .fc .fc-toolbar-title {
+            color: #1f2937; /* Gray 800 */
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="app" class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">📅 Gestor de Horarios Disponibles</h1>
+        <p class="text-center text-gray-500 mb-8">Usa los selectores para añadir un nuevo bloque de disponibilidad. Los horarios se actualizan en tiempo real en el calendario.</p>
+
+        <!-- Formulario de Selección -->
+        <div class="container-card p-6 rounded-xl mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Añadir Nuevo Horario</h2>
+            <div id="loading-auth" class="text-center text-blue-500 mb-4 hidden">Inicializando la base de datos...</div>
+
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <!-- Año -->
+                <div class="col-span-1">
+                    <label for="select-year" class="block text-sm font-medium text-gray-600 mb-1">Año</label>
+                    <select id="select-year" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></select>
+                </div>
+                <!-- Mes -->
+                <div class="col-span-1">
+                    <label for="select-month" class="block text-sm font-medium text-gray-600 mb-1">Mes</label>
+                    <select id="select-month" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></select>
+                </div>
+                <!-- Día -->
+                <div class="col-span-1">
+                    <label for="select-day" class="block text-sm font-medium text-gray-600 mb-1">Día</label>
+                    <select id="select-day" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></select>
+                </div>
+                <!-- Hora de Inicio -->
+                <div class="col-span-2 md:col-span-1">
+                    <label for="select-start-time" class="block text-sm font-medium text-gray-600 mb-1">Desde (HH:MM)</label>
+                    <select id="select-start-time" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></select>
+                </div>
+                <!-- Hora de Fin -->
+                <div class="col-span-2 md:col-span-1">
+                    <label for="select-end-time" class="block text-sm font-medium text-gray-600 mb-1">Hasta (HH:MM)</label>
+                    <select id="select-end-time" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></select>
+                </div>
+            </div>
+
+            <button id="add-schedule-btn" class="mt-6 w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50" disabled>
+                Guardar Horario Disponible
+            </button>
+
+            <div id="error-message" class="mt-4 text-red-600 font-medium hidden"></div>
         </div>
+
+        <!-- Calendario de Visualización -->
+        <div class="container-card p-6 rounded-xl">
+            <div id="calendar" class="w-full"></div>
+        </div>
+        
+        <p class="text-xs text-gray-400 mt-6 text-center">ID de Usuario: <span id="user-id-display">Cargando...</span> | ID de App: <span id="app-id-display">Cargando...</span></p>
+
     </div>
 
-    <!-- Resumen en cards -->
-    <div class="row mb-4">
-        <div class="col-md-4 mb-3">
-            <div class="card-minimal text-center p-3">
-                <h5 class="text-gold">Total Horarios</h5>
-                <p class="text-light display-6">{{ total_horarios }}</p>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card-minimal text-center p-3">
-                <h5 class="text-gold">Disponibles</h5>
-                <p class="text-light display-6">{{ horarios_disponibles }}</p>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card-minimal text-center p-3">
-                <h5 class="text-gold">Reservados</h5>
-                <p class="text-light display-6">{{ horarios_reservados }}</p>
-            </div>
-        </div>
-    </div>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            query, 
+            onSnapshot, 
+            deleteDoc, 
+            doc,
+            where
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Configuración y variables globales del entorno Canvas
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-    <!-- Calendario -->
-    <div class="card-minimal p-4">
-        <div id="calendar"></div>
-    </div>
-</div>
+        let db, auth, userId = null;
+        let calendar = null;
+        const SCHEDULE_COLLECTION = 'available_slots';
 
-<!-- FullCalendar CSS y JS -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+        // Elementos del DOM
+        const calendarEl = document.getElementById('calendar');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const appIdDisplay = document.getElementById('app-id-display');
+        const loadingAuthEl = document.getElementById('loading-auth');
+        const errorMessageEl = document.getElementById('error-message');
+        const addScheduleBtn = document.getElementById('add-schedule-btn');
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var calendarEl = document.getElementById('calendar');
+        // Función de utilidad para mostrar errores
+        function displayError(message) {
+            errorMessageEl.textContent = message;
+            errorMessageEl.classList.remove('hidden');
+            setTimeout(() => errorMessageEl.classList.add('hidden'), 5000);
+        }
 
-    // Convertir horarios de Django a JS
-   
+        // 1. INICIALIZACIÓN DE FIREBASE Y AUTENTICACIÓN
+        async function initFirebase() {
+            loadingAuthEl.classList.remove('hidden');
+            try {
+                // Configurar el nivel de log para depuración (opcional)
+                setLogLevel('debug'); 
 
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'timeGridWeek',
-        locale: 'es',
-        allDaySlot: false,
-        slotMinTime: "08:00:00",
-        slotMaxTime: "20:00:00",
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'timeGridWeek,timeGridDay,listWeek'
-        },
-        events: eventos,
-        selectable: true,
-        select: function(info) {
-            let confirmar = confirm(`¿Deseas marcar este horario como disponible?\nDesde: ${info.startStr}\nHasta: ${info.endStr}`);
-           
-        },
-        eventClick: function(info) {
-            if(info.event.title === "Disponible") {
-                let confirmar = confirm("¿Deseas eliminar este horario?");
-                
-                    });
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                appIdDisplay.textContent = appId;
+
+                // Autenticación con el token proporcionado o anónimamente
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
                 }
+
+                // Esperar a que el estado de autenticación cambie
+                onAuthStateChanged(auth, (user) => {
+                    loadingAuthEl.classList.add('hidden');
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = userId;
+                        addScheduleBtn.disabled = false;
+                        // Una vez autenticado, inicializar el calendario y listeners de datos
+                        initCalendar();
+                        setupDataListener();
+                        setupFormListeners();
+                    } else {
+                        userIdDisplay.textContent = 'No autenticado';
+                        addScheduleBtn.disabled = true;
+                        displayError('Error de autenticación. No se puede cargar el usuario.');
+                    }
+                });
+
+            } catch (error) {
+                loadingAuthEl.classList.add('hidden');
+                console.error("Firebase Initialization/Auth Error:", error);
+                displayError("Error crítico al inicializar Firebase: " + error.message);
+                addScheduleBtn.disabled = true;
             }
         }
-    });
 
-    calendar.render();
-});
-</script>
+        // 2. CONFIGURACIÓN DE FIRESTORE
+        function getCollectionRef() {
+            // Usamos la colección privada por usuario
+            return collection(db, `artifacts/${appId}/users/${userId}/${SCHEDULE_COLLECTION}`);
+        }
 
-<style>
-.fc .fc-toolbar-title {
-    color: var(--accent-gold);
-    font-weight: 600;
-}
+        // 3. FULLCALENDAR
+        function initCalendar() {
+            if (!calendarEl || calendar) return; // Ya inicializado o elemento no encontrado
 
-.fc {
-    background: var(--bg-card);
-    border-radius: 12px;
-    padding: 1rem;
-}
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                locale: 'es',
+                allDaySlot: false,
+                slotMinTime: "07:00:00",
+                slotMaxTime: "22:00:00",
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'timeGridWeek,timeGridDay'
+                },
+                editable: false, // Deshabilitar la edición por drag & drop
+                selectable: false, // Deshabilitar la selección por clic
+                events: [], // Los eventos se cargarán por onSnapshot
+                eventContent: function(arg) {
+                    // Personalizar el contenido del evento
+                    return { html: '<div class="p-1 leading-tight">✅ Disponible</div>' };
+                },
+                // Manejar la eliminación de un slot al hacer clic en él
+                eventClick: function(info) {
+                    const docId = info.event.id;
+                    const confirmation = confirm(`¿Deseas eliminar este horario disponible?\nDesde: ${info.event.startStr}\nHasta: ${info.event.endStr}`);
+                    
+                    if (confirmation) {
+                        deleteSchedule(docId);
+                    }
+                }
+            });
 
-.fc-event {
-    border-radius: 8px;
-    color: #fff;
-    font-weight: 500;
-    cursor: pointer;
-}
+            calendar.render();
+        }
 
-.card-minimal {
-    background: var(--bg-card);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
-}
-</style>
-{% endblock %}
+        // 4. LECTURA DE DATOS EN TIEMPO REAL (onSnapshot)
+        function setupDataListener() {
+            if (!db || !userId) return;
+
+            const q = query(getCollectionRef());
+
+            onSnapshot(q, (snapshot) => {
+                const firebaseEvents = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // Agregar el ID del documento para la eliminación posterior
+                    firebaseEvents.push({
+                        id: doc.id, 
+                        title: 'Disponible',
+                        start: data.inicio,
+                        end: data.fin,
+                        classNames: ['fc-event-available'],
+                        allDay: false
+                    });
+                });
+
+                if (calendar) {
+                    // Limpiar eventos existentes y agregar los nuevos
+                    calendar.removeAllEvents();
+                    calendar.addEventSource(firebaseEvents);
+                    
+                    // Opcional: enfocar el calendario en la fecha actual si está vacío
+                    if (firebaseEvents.length > 0) {
+                         const initialDate = firebaseEvents[0].start.split('T')[0];
+                         calendar.gotoDate(initialDate);
+                    } else {
+                        calendar.gotoDate(new Date());
+                    }
+                }
+            }, (error) => {
+                console.error("Error al escuchar datos de Firestore:", error);
+                displayError("Error al cargar horarios: " + error.message);
+            });
+        }
+
+        // 5. ESCRITURA DE DATOS (ADD)
+        async function saveSchedule(startTime, endTime) {
+            if (!db || !userId) {
+                displayError("Error: Usuario no autenticado para guardar datos.");
+                return;
+            }
+
+            try {
+                // Firestore prefiere el formato ISO String para fechas y horas
+                await addDoc(getCollectionRef(), {
+                    inicio: startTime,
+                    fin: endTime,
+                    reservado: false, // Estado inicial
+                    createdAt: new Date().toISOString()
+                });
+                // Éxito: onSnapshot actualizará el calendario
+                alert('Horario disponible guardado con éxito!');
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                displayError("Error al guardar el horario: " + e.message);
+            }
+        }
+        
+        // 6. ELIMINACIÓN DE DATOS (DELETE)
+        async function deleteSchedule(docId) {
+            if (!db || !userId) {
+                displayError("Error: Usuario no autenticado para eliminar datos.");
+                return;
+            }
+
+            try {
+                await deleteDoc(doc(getCollectionRef(), docId));
+                // Éxito: onSnapshot actualizará el calendario automáticamente
+                alert('Horario disponible eliminado con éxito.');
+            } catch (e) {
+                console.error("Error deleting document: ", e);
+                displayError("Error al eliminar el horario: " + e.message);
+            }
+        }
+
+
+        // 7. LÓGICA DE FORMULARIO
+        const selectYear = document.getElementById('select-year');
+        const selectMonth = document.getElementById('select-month');
+        const selectDay = document.getElementById('select-day');
+        const selectStartTime = document.getElementById('select-start-time');
+        const selectEndTime = document.getElementById('select-end-time');
+
+        const MONTHS_ES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+        function populateYears() {
+            const currentYear = new Date().getFullYear();
+            for (let i = 0; i < 3; i++) {
+                const year = currentYear + i;
+                selectYear.innerHTML += `<option value="${year}">${year}</option>`;
+            }
+        }
+
+        function populateMonths() {
+            selectMonth.innerHTML = '';
+            MONTHS_ES.forEach((name, index) => {
+                // Valor es el índice + 1 (1 para Enero, 12 para Diciembre)
+                const monthValue = String(index + 1).padStart(2, '0');
+                selectMonth.innerHTML += `<option value="${monthValue}">${name}</option>`;
+            });
+            // Seleccionar el mes actual por defecto
+            const currentMonth = new Date().getMonth();
+            selectMonth.value = String(currentMonth + 1).padStart(2, '0');
+        }
+
+        function getDaysInMonth(year, month) {
+            // El mes en JS es 0-indexado, pero aquí usamos 1-indexado para los selects, 
+            // por lo que el mes - 1 funciona para obtener el último día del mes
+            return new Date(year, month, 0).getDate();
+        }
+
+        function populateDays() {
+            selectDay.innerHTML = '';
+            const year = parseInt(selectYear.value);
+            // El valor del select-month es una cadena de 2 dígitos, ej: "11"
+            const month = parseInt(selectMonth.value); 
+            const daysInMonth = getDaysInMonth(year, month);
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayValue = String(i).padStart(2, '0');
+                selectDay.innerHTML += `<option value="${dayValue}">${i}</option>`;
+            }
+            // Seleccionar el día actual por defecto
+            const currentDay = new Date().getDate();
+            selectDay.value = String(currentDay).padStart(2, '0');
+        }
+        
+        function populateTimes() {
+            selectStartTime.innerHTML = '';
+            selectEndTime.innerHTML = '';
+
+            // Generar franjas horarias de 30 minutos (de 7:00 a 22:00)
+            for (let h = 7; h <= 22; h++) {
+                for (let m = 0; m < 60; m += 30) {
+                    const hour = String(h).padStart(2, '0');
+                    const minute = String(m).padStart(2, '0');
+                    const time = `${hour}:${minute}`;
+
+                    if (h < 22) { // Permitir hora de inicio hasta 21:30
+                       selectStartTime.innerHTML += `<option value="${time}">${time}</option>`;
+                    }
+                    if (h > 7 || (h === 7 && m > 0)) { // Permitir hora de fin desde 7:30
+                        selectEndTime.innerHTML += `<option value="${time}">${time}</option>`;
+                    }
+                }
+            }
+            // Seleccionar horas por defecto
+            selectStartTime.value = "11:00";
+            selectEndTime.value = "12:00";
+        }
+
+        function setupFormListeners() {
+            // Llenar los selects
+            populateYears();
+            populateMonths();
+            populateDays();
+            populateTimes();
+
+            // Event listener para actualizar los días cuando cambie el año o mes
+            selectYear.addEventListener('change', populateDays);
+            selectMonth.addEventListener('change', populateDays);
+            
+            // Event listener para el botón de guardar
+            addScheduleBtn.addEventListener('click', () => {
+                const year = selectYear.value;
+                const month = selectMonth.value;
+                const day = selectDay.value;
+                const startTime = selectStartTime.value;
+                const endTime = selectEndTime.value;
+
+                // Combinar los valores en formato ISO 8601 (necesario para Firestore y FullCalendar)
+                const datePart = `${year}-${month}-${day}`;
+                
+                const startDateTimeString = `${datePart}T${startTime}:00`;
+                const endDateTimeString = `${datePart}T${endTime}:00`;
+
+                // Validación simple de fecha y hora
+                if (startDateTimeString >= endDateTimeString) {
+                    displayError('La hora de inicio debe ser anterior a la hora de fin.');
+                    return;
+                }
+                
+                // Llamar a la función de guardado en Firestore
+                saveSchedule(startDateTimeString, endDateTimeString);
+            });
+        }
+
+        // Iniciar la aplicación al cargar el script
+        initFirebase();
+
+    </script>
+</body>
+</html>
