@@ -164,6 +164,27 @@ def editar_usuario(request, usuario_id):
     return render(request, 'admin/editar_usuario.html', {'usuario_id': usuario_id})
 
 # ---------------------------
+# Vista de login personalizada
+# ---------------------------
+def login_view(request):
+    from django.contrib.auth import authenticate, login
+    from django.contrib import messages
+
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            if user.bloqueado:
+                messages.error(request, 'Tu cuenta ha sido bloqueada. Contacta al administrador.')
+            else:
+                login(request, user)
+                return redirect('home')
+        else:
+            messages.error(request, 'Credenciales inválidas.')
+    return render(request, 'registration/login.html')
+
+# ---------------------------
 # URLs
 # ---------------------------
 urlpatterns = [
@@ -178,7 +199,7 @@ urlpatterns = [
     
     # URLs de autenticación
     path('logout/', auth_views.LogoutView.as_view(next_page='home'), name='logout'),
-    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
+    path('login/', login_view, name='login'),
 
     # URLs de administración
     path('admin-panel/gestion-usuarios/', gestion_usuarios, name='gestion_usuarios'),
@@ -192,6 +213,7 @@ urlpatterns = [
 urlpatterns += [
     path('usuarios/', include(('usuarios.urls', 'usuarios'), namespace='usuarios')),
     path('core/', include(('core.urls', 'core'), namespace='core')),
+    path('tarotistas/', include(('tarotistas.urls', 'tarotistas'), namespace='tarotistas')),
 ]
 
 # Servir archivos media en desarrollo
