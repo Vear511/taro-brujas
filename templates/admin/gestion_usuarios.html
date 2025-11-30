@@ -5,113 +5,113 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5>Lista de Usuarios Registrados</h5>
-                <span class="badge bg-purple">{{ usuarios|length }} usuarios</span>
-            </div>
-            <div class="card-body">
-                {% if usuarios %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Usuario</th>
-                                <th>Nombre Completo</th>
-                                <th>Email</th>
-                                <th>Tipo</th>
-                                <th>Fecha Registro</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for usuario in usuarios %}
-                            <tr>
-                                <td>{{ usuario.username }}</td>
-                                <td>{{ usuario.get_full_name|default:"No especificado" }}</td>
-                                <td>{{ usuario.email }}</td>
-                                <td>
-                                    <span class="badge 
-                                        {% if usuario.is_superuser %}bg-danger
-                                        {% elif usuario.is_staff %}bg-warning
-                                        {% elif usuario.es_tarotista %}bg-info
-                                        {% else %}bg-secondary{% endif %}">
-                                        {% if usuario.is_superuser %}Super Admin
-                                        {% elif usuario.is_staff %}Administrador
-                                        {% elif usuario.es_tarotista %}Tarotista
-                                        {% else %}Cliente
-                                        {% endif %}
-                                    </span>
-                                </td>
-                                <td>{{ usuario.date_joined|date:"d/m/Y" }}</td>
-                                <td>
-                                    <span class="badge {% if usuario.is_active %}bg-success{% else %}bg-danger{% endif %}">
-                                        {{ usuario.is_active|yesno:"Activo,Inactivo" }}
-                                    </span>
-                                    {% if usuario.ban == 1 %}
-                                        <span class="badge bg-danger">Baneado</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        
-                                        <a href="{% url 'editar_usuario' usuario.id %}" class="btn btn-outline-primary">
-                                            Editar
-                                        </a>
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Lista de Usuarios Registrados</h5>
+                <span class="badge bg-purple">{{ usuarios|length }} usuarios</span>
+            </div>
+            <div class="card-body">
+                {% if usuarios %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Nombre Completo</th>
+                                <th>Email</th>
+                                <th>Tipo</th>
+                                <th>Fecha Registro</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usuario in usuarios %}
+                            <tr>
+                                <td>{{ usuario.username }}</td>
+                                <td>{{ usuario.get_full_name|default:"No especificado" }}</td>
+                                <td>{{ usuario.email }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if usuario.is_superuser %}bg-danger
+                                        {% elif usuario.is_staff %}bg-warning
+                                        {% elif usuario.es_tarotista %}bg-info
+                                        {% else %}bg-secondary{% endif %}">
+                                        {% if usuario.is_superuser %}Super Admin
+                                        {% elif usuario.is_staff %}Administrador
+                                        {% elif usuario.es_tarotista %}Tarotista
+                                        {% else %}Cliente
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ usuario.date_joined|date:"d/m/Y" }}</td>
+                                <td>
+                                    <span class="badge {% if usuario.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ usuario.is_active|yesno:"Activo,Inactivo" }}
+                                    </span>
+                                    {% if usuario.ban == 1 %}
+                                        <span class="badge bg-danger">Baneado</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        
+                                                                                <a href="{% url 'usuarios:editar_usuario' usuario.id %}" class="btn btn-outline-primary">
+                                            Editar
+                                        </a>
 
-                                        {% if usuario.ban == 1 %}
-                                            <form action="{% url 'desbanear_usuario' usuario.id %}" method="post" style="display: inline;" 
-                                                onsubmit="return confirm('¿Estás seguro de DESBANEAR a {{ usuario.username }} y reactivar su cuenta?');">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-warning">
-                                                    Desbanear
-                                                </button>
-                                            </form>
-                                        {% else %}
-                                            <form action="{% url 'banear_usuario' usuario.id %}" method="post" style="display: inline;"
-                                                onsubmit="return confirm('¿Estás seguro de BANEAR a {{ usuario.username }}? Su cuenta será desactivada.');">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-outline-warning">
-                                                    Banear
-                                                </button>
-                                            </form>
-                                        {% endif %}
-                                        
-                                        <form action="{% url 'eliminar_usuario' usuario.id %}" method="post" style="display: inline;" 
-                                            onsubmit="return confirmarEliminacion(event, '{{ usuario.username }}');">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-outline-danger">
-                                                Eliminar
-                                            </button>
-                                        </form>
-                                        
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-5">
-                    <p class="text-muted">No hay usuarios registrados aún.</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+                                        {% if usuario.ban == 1 %}
+                                            <form action="{% url 'usuarios:desbanear_usuario' usuario.id %}" method="post" style="display: inline;" 
+                                                onsubmit="return confirm('¿Estás seguro de DESBANEAR a {{ usuario.username }} y reactivar su cuenta?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-warning">
+                                                    Desbanear
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <form action="{% url 'usuarios:banear_usuario' usuario.id %}" method="post" style="display: inline;"
+                                                onsubmit="return confirm('¿Estás seguro de BANEAR a {{ usuario.username }}? Su cuenta será desactivada.');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-warning">
+                                                    Banear
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        <form action="{% url 'usuarios:eliminar_usuario' usuario.id %}" method="post" style="display: inline;" 
+                                            onsubmit="return confirmarEliminacion(event, '{{ usuario.username }}');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger">
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <p class="text-muted">No hay usuarios registrados aún.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-    // Se ha modificado para trabajar con la nueva estructura de formularios POST
-    function confirmarEliminacion(event, username) {
-        if (!confirm('¿Estás seguro de eliminar al usuario ' + username + '? Esta acción es irreversible.')) {
-            event.preventDefault(); // Detener el envío del formulario si el usuario cancela
-            return false;
-        }
-        return true;
-    }
+    // Se ha modificado para trabajar con la nueva estructura de formularios POST
+    function confirmarEliminacion(event, username) {
+        if (!confirm('¿Estás seguro de eliminar al usuario ' + username + '? Esta acción es irreversible.')) {
+            event.preventDefault(); // Detener el envío del formulario si el usuario cancela
+            return false;
+        }
+        return true;
+    }
 </script>
 {% endblock %}
