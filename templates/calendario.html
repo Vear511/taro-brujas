@@ -4,8 +4,8 @@
 <div class="container mt-5 pt-4">
     <div class="row mb-4">
         <div class="col-12 text-center">
-            <h1 class="hero-title">📅 Calendario de Disponibilidad</h1>
-            <p class="text-muted">Marca tus horarios disponibles para que los clientes puedan agendar citas.</p>
+            <h1 class="hero-title">📅 Gestión de Disponibilidad</h1>
+            <p class="text-muted">Visualiza los horarios y usa el formulario para agregar nuevos bloques.</p>
         </div>
     </div>
 
@@ -29,9 +29,36 @@
             </div>
         </div>
     </div>
+    
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card-minimal p-4">
+                <h4 class="text-gold mb-3">➕ Agregar Nuevo Bloque</h4>
+                
+                <form id="form-disponibilidad" onsubmit="event.preventDefault(); agregarDisponibilidad();">
+                    {% csrf_token %} 
+                    
+                    <div class="mb-3">
+                        <label for="start-time" class="form-label text-light">Inicio (Día y Hora):</label>
+                        <input type="datetime-local" class="form-control" id="start-time" name="start_time" required step="60"> 
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="end-time" class="form-label text-light">Fin (Día y Hora):</label>
+                        <input type="datetime-local" class="form-control" id="end-time" name="end_time" required step="60">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-gold w-100">Marcar Disponibilidad</button>
+                    <small class="text-muted mt-2 d-block">Incluye minutos (Ej: 13:22)</small>
+                </form>
+            </div>
+        </div>
 
-    <div class="card-minimal p-4">
-        <div id="calendar"></div>
+        <div class="col-lg-8 mb-4">
+            <div class="card-minimal p-4">
+                <div id="calendar"></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -39,18 +66,13 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    var calendarEl = document.getElementById('calendar');
-    // 1. Convertir horarios de Django a JS
-    // **NOTA IMPORTANTE:** La variable 'horarios_eventos_json' DEBE ser pasada desde la vista de Django
-    // como una cadena JSON de la lista de eventos. Ejemplo en Django view:
-    // context['horarios_eventos_json'] = json.dumps(list_of_events)
-    // donde list_of_events es una lista de diccionarios en formato FullCalendar.
-    // Ejemplo de evento: {'id': 1, 'title': 'Disponible', 'start': '2025-01-01T10:00:00', 'end': '2025-01-01T11:00:00', 'color': '#28a745'}
-    var eventos = JSON.parse('{{ horarios_eventos_json|safe }}' || '[]');
+    let calendar; // Hacemos la variable global para poder usarla en agregarDisponibilidad()
+    // Definimos la URL de AJAX usando la etiqueta URL de Django
+    const disponibilidadUrl = "{% url 'core:manejar_disponibilidad_ajax' %}"; 
 
     // Función para obtener el CSRF token de Django
     function getCookie(name) {
+        // ... (misma función de antes)
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
             const cookies = document.cookie.split(';');
@@ -67,119 +89,138 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrftoken = getCookie('csrftoken');
 
 
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'timeGridWeek',
-        locale: 'es',
-        allDaySlot: false,
-        slotMinTime: "08:00:00",
-        slotMaxTime: "20:00:00",
-        slotDuration: '01:00:00', // Define la duración de las ranuras (ej. 1 hora)
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'timeGridWeek,timeGridDay,listWeek'
-        },
-        events: eventos,
-        selectable: true,
-        select: function(info) {
-            // Se ejecuta al seleccionar un rango de tiempo
-            let start = info.startStr.slice(0, 16); // Formato YYYY-MM-DDTHH:MM
-            let end = info.endStr.slice(0, 16);
+    // ----------------------------------------------------
+    // FUNCIÓN PARA AGREGAR DISPONIBILIDAD DESDE EL FORMULARIO
+    // ----------------------------------------------------
+    function agregarDisponibilidad() {
+        const startTime = document.getElementById('start-time').value;
+        const endTime = document.getElementById('end-time').value;
 
-            let confirmar = confirm(`¿Deseas marcar este horario como disponible?\nDesde: ${start.replace('T', ' ')}\nHasta: ${end.replace('T', ' ')}`);
-            
-            if (confirmar) {
-                // **2. Implementación AJAX para marcar disponibilidad (Crear Evento)**
-                fetch('/tu-url-de-marcar-disponibilidad/', { // **Cambia esta URL**
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken 
-                    },
-                    body: JSON.stringify({
-                        start_time: start,
-                        end_time: end,
-                        action: 'add'
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if(data.success) {
-                        // Si la operación en Django es exitosa, se añade el evento al calendario
-                        calendar.addEvent({
-                            id: data.event_id, // Necesitas devolver el ID del evento creado
-                            title: 'Disponible',
-                            start: start,
-                            end: end,
-                            color: '#28a745' // Verde para disponible
-                        });
-                        alert('Horario marcado como disponible.');
-                    } else {
-                        alert('Error al marcar disponibilidad: ' + data.error);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error en la petición AJAX:', error);
-                    alert('Ocurrió un error de conexión.');
-                });
-            }
-            calendar.unselect(); // Deselecciona el rango
-        },
-        eventClick: function(info) {
-            // Se ejecuta al hacer clic en un evento existente
-            if(info.event.title === "Disponible" && !info.event.extendedProps.is_reserved) { 
-                // Evita eliminar eventos ya reservados
-                let confirmar = confirm(`¿Deseas eliminar este horario disponible?\nID: ${info.event.id}`);
-                
-                if (confirmar) {
-                    // **3. Implementación AJAX para eliminar disponibilidad (Eliminar Evento)**
-                    fetch('/tu-url-de-marcar-disponibilidad/', { // **Cambia esta URL**
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrftoken 
-                        },
-                        body: JSON.stringify({
-                            event_id: info.event.id,
-                            action: 'delete'
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if(data.success) {
-                            info.event.remove(); // Elimina el evento del calendario
-                            alert('Horario eliminado correctamente.');
-                        } else {
-                            alert('Error al eliminar horario: ' + data.error);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error en la petición AJAX:', error);
-                        alert('Ocurrió un error de conexión.');
-                    });
-                }
-            } else if (info.event.extendedProps.is_reserved) {
-                 alert('Este horario ya está reservado y no puede ser eliminado directamente.');
-            }
-        },
-        eventDidMount: function(info) {
-            // Para cambiar el color de los eventos 'Reservados'
-            if (info.event.extendedProps.is_reserved) {
-                 info.el.style.backgroundColor = '#dc3545'; // Rojo para reservados
-                 info.el.style.borderColor = '#dc3545'; 
-            } else {
-                 info.el.style.backgroundColor = '#28a745'; // Verde para disponibles
-                 info.el.style.borderColor = '#28a745'; 
-            }
+        if (!startTime || !endTime) {
+            alert("Por favor, selecciona las fechas y horas de inicio y fin.");
+            return;
         }
-    });
+        
+        // Verifica que la hora de fin sea posterior a la de inicio
+        if (new Date(endTime) <= new Date(startTime)) {
+            alert("La hora de fin debe ser posterior a la hora de inicio.");
+            return;
+        }
 
-    calendar.render();
-});
+        // Envío AJAX
+        fetch(disponibilidadUrl, { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken 
+            },
+            body: JSON.stringify({
+                start_time: startTime, // Formato YYYY-MM-DDTHH:MM
+                end_time: endTime,
+                action: 'add' // Indicamos al backend que es una acción de adición
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                // Si la operación en Django es exitosa, se añade el evento al calendario
+                calendar.addEvent({
+                    id: data.event_id, 
+                    title: 'Disponible',
+                    start: startTime,
+                    end: endTime,
+                    color: '#28a745', 
+                    extendedProps: {
+                        is_reserved: false // Aseguramos que se marque como no reservado
+                    }
+                });
+                alert('Horario marcado como disponible.');
+                document.getElementById('form-disponibilidad').reset(); // Limpia el formulario
+            } else {
+                alert('Error al marcar disponibilidad: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error en la petición AJAX:', error);
+            alert('Ocurrió un error de conexión.');
+        });
+    }
+
+    // ----------------------------------------------------
+    // INICIALIZACIÓN DE FULLCALENDAR
+    // ----------------------------------------------------
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+
+        // Convierte horarios de Django a JS
+        var eventos = JSON.parse('{{ horarios_eventos_json|safe }}' || '[]');
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            locale: 'es',
+            allDaySlot: false,
+            // Quitamos slotMinTime/slotMaxTime para que se adapte mejor a horarios con minutos
+            // slotMinTime: "08:00:00", 
+            // slotMaxTime: "20:00:00",
+            slotDuration: '00:30:00', // Seteamos la grilla para que sea visible en intervalos de 30 minutos
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'timeGridWeek,timeGridDay,listWeek'
+            },
+            events: eventos,
+            // ********** CAMBIO CLAVE: DESACTIVAMOS LA SELECCIÓN **********
+            selectable: false, // El calendario solo debe mostrar, no permitir seleccionar rangos
+            
+            eventClick: function(info) {
+                // Mantenemos la lógica de eliminación, asumiendo que solo se pueden eliminar los no reservados
+                if(info.event.title === "Disponible" && !info.event.extendedProps.is_reserved) { 
+                    let confirmar = confirm(`¿Deseas eliminar este horario disponible?\nDesde: ${info.event.startStr.slice(0, 16).replace('T', ' ')}\nHasta: ${info.event.endStr.slice(0, 16).replace('T', ' ')}`);
+                    
+                    if (confirmar) {
+                        fetch(disponibilidadUrl, { 
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrftoken 
+                            },
+                            body: JSON.stringify({
+                                event_id: info.event.id,
+                                action: 'delete'
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if(data.success) {
+                                info.event.remove(); 
+                                alert('Horario eliminado correctamente.');
+                            } else {
+                                alert('Error al eliminar horario: ' + data.error);
+                            }
+                        });
+                    }
+                } else if (info.event.extendedProps.is_reserved) {
+                     alert('Este horario ya está reservado y no puede ser eliminado desde aquí.');
+                }
+            },
+            eventDidMount: function(info) {
+                // Para cambiar el color de los eventos 'Reservados'
+                if (info.event.extendedProps.is_reserved) {
+                     info.el.style.backgroundColor = '#dc3545'; // Rojo para reservados
+                     info.el.style.borderColor = '#dc3545'; 
+                } else {
+                     info.el.style.backgroundColor = '#28a745'; // Verde para disponibles
+                     info.el.style.borderColor = '#28a745'; 
+                }
+            }
+        });
+
+        calendar.render();
+    });
 </script>
 
 <style>
-/* Estilos adicionales para FullCalendar, tal vez puedes ponerlos en un archivo CSS */
+/* ... (Mismos estilos de antes) ... */
 .fc .fc-toolbar-title {
     color: var(--accent-gold);
     font-weight: 600;
@@ -196,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function() {
     color: #fff;
     font-weight: 500;
     cursor: pointer;
-    border: none !important; /* Eliminamos el borde por defecto para usar solo el background-color */
+    border: none !important; 
     padding: 5px;
 }
 
@@ -207,8 +248,14 @@ document.addEventListener('DOMContentLoaded', function() {
     backdrop-filter: blur(10px);
 }
 
-/* Colores para las tarjetas de resumen (ajusta a tus variables CSS) */
-.text-gold { color: #FFD700; } 
-.text-light { color: #f8f9fa; }
+.btn-gold {
+    background-color: #FFD700;
+    border-color: #FFD700;
+    color: #000;
+}
+.btn-gold:hover {
+    background-color: #e5c100;
+    border-color: #e5c100;
+}
 </style>
 {% endblock %}
