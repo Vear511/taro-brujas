@@ -9,7 +9,5 @@ urlpatterns = [
     path('tarotista/<int:tarotista_id>/', views.perfil_tarotista, name='perfil_tarotista'),
     path('clientes/', views.lista_clientes, name='lista_clientes'),
     path('bloquear-usuario/<int:usuario_id>/', views.bloquear_usuario, name='bloquear_usuario'),
-    
-    # === RUTA DEL CALENDARIO AGREGADA ===
     path('calendario/', views.calendario, name='calendario'),
 ]
