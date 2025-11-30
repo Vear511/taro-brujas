@@ -12,7 +12,17 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Reporte, Disponibilidad 
 from citas.models import Cita
 from usuarios.models import Usuario
-# Asumimos que también tienes el modelo Tarotista disponible para request.user.tarotista
+
+# *** IMPORTACIÓN ADICIONAL NECESARIA ***
+# Se asume que el modelo Tarotista reside en la aplicación 'tarotistas'
+try:
+    from tarotistas.models import Tarotista 
+except ImportError:
+    # Manejo de error si la app 'tarotistas' no existe o no tiene el modelo
+    class Tarotista: # Define un placeholder si no existe
+        pass 
+# **************************************
+
 
 # ==================== VISTAS BÁSICAS ====================
 
@@ -23,7 +33,52 @@ def servicios(request):
     return render(request, 'servicios.html')
 
 def sobre_nosotras(request):
-    return render(request, 'sobre_nosotras.html')
+    """
+    Vista que recupera los datos combinados (Usuario + Tarotista) para
+    la sección pública 'Conoce a nuestras tarotistas'.
+    La consulta es temporalmente simplificada (.all()) para diagnóstico.
+    """
+    
+    # Solo intenta hacer la consulta si el modelo Tarotista pudo ser importado
+    if 'Tarotista' in globals() and isinstance(Tarotista, type):
+        
+        # 1. CONSULTA DE DIAGNÓSTICO: Sin filtros para asegurar que se recuperen todos los datos.
+        tarotistas_data = Tarotista.objects.select_related('usuario').all()
+        
+        # *** DIAGNÓSTICO: Buscar esto en la consola después de visitar la URL ***
+        print(f"--- INICIO DIAGNÓSTICO CORE/SOBRE_NOSOTRAS ---")
+        print(f"Número de tarotistas encontradas (SIN FILTRO): {tarotistas_data.count()}")
+        
+        tarotistas_listos = []
+        
+        for t in tarotistas_data:
+            try:
+                tarotistas_listos.append({
+                    'nombre': t.usuario.first_name, 
+                    'descripcion': t.descripcion, 
+                    'url_imagen': t.usuario.avatar.url if t.usuario.avatar else '/static/img/placeholder_default.png', 
+                })
+            except AttributeError:
+                # Captura si la relación t.usuario está rota o es nula
+                print(f"ERROR DE BD: El registro de Tarotista (ID: {getattr(t, 'id', 'N/A')}) no tiene un usuario válido asociado.")
+                continue
+            
+        print(f"Lista final para el template: {tarotistas_listos}")
+        print(f"--- FIN DIAGNÓSTICO CORE/SOBRE_NOSOTRAS ---")
+        
+        context = {
+            'tarotistas': tarotistas_listos # <-- Pasar la lista al template
+        }
+        
+    else:
+        # Si el modelo Tarotista no está disponible, se pasa una lista vacía
+        context = {
+            'tarotistas': [] 
+        }
+
+    # El template 'sobre_nosotras.html' debe usar el loop {% for tarotista in tarotistas %}
+    return render(request, 'sobre_nosotras.html', context)
+
 
 # --- VISTAS DE REPORTES (SIN CAMBIOS) ---
 
@@ -179,8 +234,6 @@ def calendario_disponibilidad_view(request):
         eventos_fc.append({
             'id': horario.pk, 
             'title': 'Reservado' if horario.reservado else 'Disponible',
-            # Las fechas de inicio y fin son de tipo TimeField en models.py, 
-            # pero la vista las recupera del objeto datetime completo
             # Usar .isoformat() para incluirlas en el JSON
             'start': horario.hora_inicio.isoformat(), 
             'end': horario.hora_fin.isoformat(),
@@ -227,7 +280,7 @@ def manejar_disponibilidad_ajax(request):
             
             # 2. Convertir y validar que el valor es un entero (ROBUSTEZ)
             try:
-                # Usamos int() para garantizar que el valor sea un entero, incluso si JSON lo leyó como float o cadena
+                # Usamos int() para garantizar que el valor sea un entero
                 dia_semana_final = int(dia_semana_val) 
             except (TypeError, ValueError):
                 return JsonResponse({'success': False, 'error': 'El dia_semana debe ser un número entero (0-6).'}, status=400)
