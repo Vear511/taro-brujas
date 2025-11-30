@@ -1,37 +1,45 @@
-# tarotistas/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from usuarios.models import Usuario
 from .models import Tarotista
 
-# --- NUEVA FUNCIÓN PARA LA PÁGINA "SOBRE NOSOTRAS" ---
-
-# tarotistas/views.py
-# ... (código anterior) ...
+# ----------------------------------------------------------------------
+# VISTAS PÚBLICAS Y DE CONSULTA DE TAROTISTAS
+# ----------------------------------------------------------------------
 
 def sobre_nosotras_view(request):
+    """
+    Vista que recupera los datos combinados (Usuario + Tarotista) para
+    la sección pública 'Conoce a nuestras tarotistas'.
+    Incluye lógica de diagnóstico para verificar la carga de datos.
+    """
     
-    # 1. Realiza la consulta JOIN usando select_related()
-    tarotistas_data = Tarotista.objects.select_related('usuario').filter(
-        usuario__is_active=True,
-        disponible=True # <-- ¡Verifica este filtro!
-    ).all()
+    # 1. PRUEBA DE CONSULTA: Usar .all() es la mejor forma de descartar fallos de filtro.
+    # Si esta línea falla, el problema es en la relación del modelo (ForeignKey/OneToOneField).
+    tarotistas_data = Tarotista.objects.select_related('usuario').all()
     
-    # *** DIAGNÓSTICO 1: Imprimir el queryset de Django ***
-    print(f"Número de tarotistas encontradas: {tarotistas_data.count()}")
+    # *** DIAGNÓSTICO: Buscar esto en la consola después de visitar la URL ***
+    print(f"--- INICIO DIAGNÓSTICO SOBRE_NOSOTRAS ---")
+    print(f"Número de tarotistas encontradas (SIN FILTRO): {tarotistas_data.count()}")
     
     tarotistas_listos = []
     
     for t in tarotistas_data:
-        # 2. Mapea los campos
-        tarotistas_listos.append({
-            'nombre': t.usuario.first_name, 
-            'descripcion': t.descripcion, 
-            'url_imagen': t.usuario.avatar.url if t.usuario.avatar else '/static/img/placeholder_default.png', 
-        })
+        try:
+            # Mapeamos los campos a un diccionario para el template
+            tarotistas_listos.append({
+                'nombre': t.usuario.first_name, 
+                'descripcion': t.descripcion, 
+                # Usamos .url para campos FileField/ImageField
+                'url_imagen': t.usuario.avatar.url if t.usuario.avatar else '/static/img/placeholder_default.png', 
+            })
+        except AttributeError:
+            # Se dispara si un registro de Tarotista no tiene un Usuario válido asociado.
+            print(f"ERROR DE BD: El registro de Tarotista (ID: {t.id}) tiene un usuario_id roto o nulo.")
+            continue # Saltar este registro para no romper la página
         
-    # *** DIAGNÓSTICO 2: Imprimir la lista final enviada al template ***
     print(f"Lista final para el template: {tarotistas_listos}")
+    print(f"--- FIN DIAGNÓSTICO SOBRE_NOSOTRAS ---")
         
     context = {
         'tarotistas': tarotistas_listos
@@ -39,12 +47,27 @@ def sobre_nosotras_view(request):
     
     return render(request, 'sobre_nosotras.html', context)
 
-# ----------------------------------------------------
-# A continuación, el resto de tus vistas ya existentes:
+
+def lista_tarotistas(request):
+    """
+    Vista original para listar tarotistas disponibles.
+    (Si usas 'sobre_nosotras_view' para el listado público, esta podría ser redundante)
+    """
+    tarotistas = Tarotista.objects.filter(disponible=True)
+    return render(request, 'lista_tarotistas.html', {'tarotistas': tarotistas})
+
+
+def perfil_tarotista(request, tarotista_id):
+    tarotista = Tarotista.objects.get(id=tarotista_id)
+    return render(request, 'perfil_tarotista.html', {'tarotista': tarotista})
+
+
+# ----------------------------------------------------------------------
+# VISTAS DE GESTIÓN Y ADMINISTRACIÓN (Requieren login o permisos)
+# ----------------------------------------------------------------------
 
 @user_passes_test(lambda u: u.is_staff)
 def agregar_tarotista(request):
-# ... (Tu código existente para agregar_tarotista) ...
     if request.method == 'POST':
         try:
             # Crear usuario
@@ -76,13 +99,6 @@ def agregar_tarotista(request):
             
     return render(request, 'agregar_tarotista.html')
 
-def lista_tarotistas(request):
-    tarotistas = Tarotista.objects.filter(disponible=True)
-    return render(request, 'lista_tarotistas.html', {'tarotistas': tarotistas})
-
-def perfil_tarotista(request, tarotista_id):
-    tarotista = Tarotista.objects.get(id=tarotista_id)
-    return render(request, 'perfil_tarotista.html', {'tarotista': tarotista})
 
 @login_required
 @user_passes_test(lambda u: hasattr(u, 'tarotista'))
@@ -98,6 +114,8 @@ def bloquear_usuario(request, usuario_id):
     usuario.bloqueado = not usuario.bloqueado
     usuario.save()
     return redirect('tarotistas:lista_clientes')
+    
+    
 def calendario(request):
     """
     Vista del calendario para la gestión de disponibilidad y citas de la tarotista.
