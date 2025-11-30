@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
+# Asumo que estos modelos están disponibles
 from usuarios.models import Usuario
 from .models import Tarotista
 
@@ -15,9 +16,13 @@ def sobre_nosotras(request):
     """
     
     # 1. PRUEBA DE CONSULTA: Sin filtros para asegurar que se recuperen todos los datos.
+    # El uso de select_related('usuario') realiza un INNER JOIN:
+    # Toma t.usuario_id de tarotistas_tarotista y lo empata con u.id de usuarios_usuario.
+    # Solo se incluyen los registros que tienen una coincidencia válida en ambas tablas.
     tarotistas_data = Tarotista.objects.select_related('usuario').all()
     
-    # *** DIAGNÓSTICO: Buscar esto en la consola después de visitar la URL ***
+    
+    # *** DIAGNÓSTICO: Buscar esto en los logs de Railway ***
     print(f"--- INICIO DIAGNÓSTICO SOBRE_NOSOTRAS ---")
     print(f"Número de tarotistas encontradas (SIN FILTRO): {tarotistas_data.count()}")
     
@@ -32,7 +37,7 @@ def sobre_nosotras(request):
             # Nombre: Usa first_name, luego username, luego un valor por defecto.
             nombre_a_mostrar = t.usuario.first_name or t.usuario.username or "Tarotista (Nombre Pendiente)"
             
-            # Descripción: Usa la descripción o un mensaje por defecto.
+            # Descripción: Usa la descripción o un mensaje por defecto si está vacío.
             descripcion_a_mostrar = t.descripcion or "Esta tarotista aún no ha completado su biografía."
             
             # Imagen: Usa la imagen del avatar o una por defecto.
@@ -45,7 +50,7 @@ def sobre_nosotras(request):
             })
             
         except AttributeError:
-            # Se dispara si un registro de Tarotista no tiene un Usuario válido asociado.
+            # Se dispara si un registro de Tarotista no tiene un Usuario válido asociado (ForeignKey roto).
             print(f"ERROR DE BD: El registro de Tarotista (ID: {t.id}) tiene un usuario_id roto o nulo.")
             continue # Saltamos este registro
         
@@ -61,7 +66,6 @@ def sobre_nosotras(request):
 def lista_tarotistas(request):
     """
     Vista original para listar tarotistas disponibles.
-    (Si usas 'sobre_nosotras_view' para el listado público, esta podría ser redundante)
     """
     tarotistas = Tarotista.objects.filter(disponible=True)
     return render(request, 'lista_tarotistas.html', {'tarotistas': tarotistas})
