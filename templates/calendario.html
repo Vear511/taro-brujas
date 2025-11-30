@@ -1,417 +1,214 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Disponibilidad - Brujitas</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Crimson+Text&display=swap" rel="stylesheet">
-    
-    {% load static %}
-    <link href="{% static 'css/styles.css' %}" rel="stylesheet"> 
-    
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-    
-    <style>
-        /* Estilos específicos de FullCalendar (Asegura visibilidad en tema oscuro) */
-        
-        /* Estilo para los eventos de disponibilidad (mantenemos el verde para contraste) */
-        .fc-event-available {
-            background-color: #34d399 !important; /* Green 400 */
-            border-color: #059669 !important; /* Green 600 */
-            color: white !important;
-            font-weight: 600;
-        }
+{% extends 'base.html' %}
 
-        /* Sobreescribir colores de FullCalendar para el tema oscuro usando tus variables */
-        .fc-theme-dark .fc-toolbar-title {
-            color: var(--text-light, #f0f0f0) !important;
-        }
-        .fc-theme-dark .fc-button {
-            background-color: var(--bg-card, #1a1a1a) !important;
-            border-color: var(--border-light, rgba(255,255,255,0.1)) !important;
-            color: var(--text-light, #f0f0f0) !important;
-        }
-        .fc-theme-dark .fc-col-header-cell {
-            background-color: var(--bg-card, #1a1a1a) !important;
-            border-bottom: 1px solid var(--border-light, rgba(255,255,255,0.1)) !important;
-            color: var(--text-light, #f0f0f0) !important;
-        }
-
-        /* Estilo de los selects para el tema oscuro */
-        .form-select {
-            background-color: #333;
-            border-color: var(--border-light);
-            color: var(--text-light);
-            transition: border-color 0.15s ease-in-out;
-        }
-        .form-select:focus {
-            background-color: #333;
-            color: var(--text-light);
-            border-color: var(--accent-gold, #d4af37); 
-            box-shadow: 0 0 0 0.25rem rgba(212, 175, 55, 0.25); 
-        }
-    </style>
-    
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.8/index.global.min.js"></script>
-    
-</head>
-<body class="p-4 p-md-5">
-    {% csrf_token %} 
-
-    <div id="app" class="container-fluid" style="max-width: 900px;">
-        <h1 class="text-center text-gold mb-4">📅 Gestor de Horarios Disponibles</h1>
-        <p class="text-center text-muted mb-5">Usa los selectores para añadir un nuevo bloque de disponibilidad. Los horarios se actualizan en tiempo real en el calendario.</p>
-
-        <div class="card-minimal p-4">
-            <h2 class="h5 text-light mb-4">Añadir Nuevo Horario</h2>
-            <div id="loading-data" class="text-center text-purple mb-4 hidden">Cargando y sincronizando horarios con el servidor...</div>
-
-            <div class="row g-3 align-items-end">
-                <div class="col-6 col-md-2">
-                    <label for="select-year" class="form-label mb-1">Año</label>
-                    <select id="select-year" class="form-select"></select>
-                </div>
-                <div class="col-6 col-md-3">
-                    <label for="select-month" class="form-label mb-1">Mes</label>
-                    <select id="select-month" class="form-select"></select>
-                </div>
-                <div class="col-6 col-md-2">
-                    <label for="select-day" class="form-label mb-1">Día</label>
-                    <select id="select-day" class="form-select"></select>
-                </div>
-                <div class="col-6 col-md-2">
-                    <label for="select-start-time" class="form-label mb-1">Desde</label>
-                    <select id="select-start-time" class="form-select"></select>
-                </div>
-                <div class="col-12 col-md-3">
-                    <label for="select-end-time" class="form-label mb-1">Hasta</label>
-                    <select id="select-end-time" class="form-select"></select>
-                </div>
-            </div>
-
-            <button id="add-schedule-btn" class="mt-4 w-100 btn-gold">
-                Guardar Horario Disponible
-            </button>
-
-            <div id="error-message" class="mt-3 text-danger fw-medium hidden"></div>
+{% block content %}
+<div class="container mt-5 pt-4">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h1 class="hero-title">📅 Calendario de Disponibilidad</h1>
+            <p class="text-muted">Marca tus horarios disponibles para que los clientes puedan agendar citas.</p>
         </div>
-
-        <div class="card-minimal p-4">
-            <div id="calendar" class="w-100"></div>
-        </div>
-        
-        <p class="text-small text-muted mt-4 text-center">Gestión de disponibilidad</p>
-
     </div>
 
-    <script>
-        
-        // ------------------------------------------
-        // 0. CONFIGURACIÓN Y UTILIDADES DE DJANGO
-        // ------------------------------------------
-        
-        // **IMPORTANTE:** Debes definir estas URLs en tu archivo urls.py de Django
-        const URLS = {
-            LOAD: '{% url "schedule:load_schedule" %}', // URL para GET (cargar)
-            ADD: '{% url "schedule:add_schedule" %}',   // URL para POST (guardar)
-            DELETE: '{% url "schedule:delete_schedule" %}', // URL base para DELETE (ej: /api/horarios/123/eliminar/)
-        };
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Total Horarios</h5>
+                <p class="text-light display-6">{{ total_horarios|default:'0' }}</p> 
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Disponibles</h5>
+                <p class="text-light display-6">{{ horarios_disponibles|default:'0' }}</p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Reservados</h5>
+                <p class="text-light display-6">{{ horarios_reservados|default:'0' }}</p>
+            </div>
+        </div>
+    </div>
 
-        // Función utilitaria para obtener el token CSRF de Django
-        function getCsrfToken() {
-            const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]');
-            return csrfToken ? csrfToken.value : '';
-        }
+    <div class="card-minimal p-4">
+        <div id="calendar"></div>
+    </div>
+</div>
 
-        // Elementos del DOM
-        const calendarEl = document.getElementById('calendar');
-        const loadingDataEl = document.getElementById('loading-data');
-        const errorMessageEl = document.getElementById('error-message');
-        const addScheduleBtn = document.getElementById('add-schedule-btn');
-        
-        let calendar = null;
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
-        function displayError(message) {
-            errorMessageEl.textContent = message;
-            errorMessageEl.classList.remove('hidden');
-            setTimeout(() => errorMessageEl.classList.add('hidden'), 7000);
-        }
-        
-        // ------------------------------------------
-        // 1. GESTIÓN DE FULLCALENDAR
-        // ------------------------------------------
-        
-        function initCalendar() {
-            if (!calendarEl || calendar) return;
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    // 1. Convertir horarios de Django a JS
+    // **NOTA IMPORTANTE:** La variable 'horarios_eventos_json' DEBE ser pasada desde la vista de Django
+    // como una cadena JSON de la lista de eventos. Ejemplo en Django view:
+    // context['horarios_eventos_json'] = json.dumps(list_of_events)
+    // donde list_of_events es una lista de diccionarios en formato FullCalendar.
+    // Ejemplo de evento: {'id': 1, 'title': 'Disponible', 'start': '2025-01-01T10:00:00', 'end': '2025-01-01T11:00:00', 'color': '#28a745'}
+    var eventos = JSON.parse('{{ horarios_eventos_json|safe }}' || '[]');
 
-            calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridWeek',
-                locale: 'es',
-                allDaySlot: false,
-                slotMinTime: "07:00:00",
-                slotMaxTime: "22:00:00",
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'timeGridWeek,timeGridDay'
-                },
-                events: fetchEventsFromDjango, // Usamos una función para cargar eventos
-                editable: false, 
-                selectable: false, 
-                
-                // Manejar la eliminación de un slot al hacer clic en él
-                eventClick: function(info) {
-                    // El ID del evento debe ser el PK (Primary Key) de tu modelo Django
-                    const scheduleId = info.event.id; 
-                    const confirmation = confirm(`¿Deseas eliminar este horario disponible?\nDesde: ${info.event.startStr}\nHasta: ${info.event.endStr}`);
-                    
-                    if (confirmation) {
-                        deleteSchedule(scheduleId);
-                    }
+    // Función para obtener el CSRF token de Django
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
                 }
-            });
-
-            calendar.render();
-        }
-        
-        // Función para cargar eventos desde Django (Usada por FullCalendar)
-        async function fetchEventsFromDjango(fetchInfo, successCallback, failureCallback) {
-             loadingDataEl.classList.remove('hidden');
-            try {
-                // Fetch a tu endpoint de listado de horarios
-                const response = await fetch(URLS.LOAD, {
-                    method: 'GET',
-                    headers: {
-                        'X-CSRFToken': getCsrfToken(), // Incluir el token CSRF, aunque sea GET
-                        'Content-Type': 'application/json',
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                
-                // Transformar los datos de Django al formato de FullCalendar
-                const fcEvents = data.map(item => ({
-                    // item.id debe ser el PK del modelo Django
-                    id: item.id, 
-                    title: 'Disponible',
-                    start: item.inicio, // Ejemplo: '2025-12-01T10:00:00'
-                    end: item.fin,       // Ejemplo: '2025-12-01T11:00:00'
-                    classNames: ['fc-event-available'],
-                    allDay: false
-                }));
-                
-                successCallback(fcEvents);
-                
-            } catch (error) {
-                console.error("Error al cargar horarios desde Django:", error);
-                displayError("Error al cargar horarios: " + error.message);
-                failureCallback(error);
-            } finally {
-                 loadingDataEl.classList.add('hidden');
             }
         }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
 
 
-        // ------------------------------------------
-        // 2. COMUNICACIÓN CON DJANGO (CREATE/DELETE)
-        // ------------------------------------------
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        locale: 'es',
+        allDaySlot: false,
+        slotMinTime: "08:00:00",
+        slotMaxTime: "20:00:00",
+        slotDuration: '01:00:00', // Define la duración de las ranuras (ej. 1 hora)
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'timeGridWeek,timeGridDay,listWeek'
+        },
+        events: eventos,
+        selectable: true,
+        select: function(info) {
+            // Se ejecuta al seleccionar un rango de tiempo
+            let start = info.startStr.slice(0, 16); // Formato YYYY-MM-DDTHH:MM
+            let end = info.endStr.slice(0, 16);
 
-        // Guardar un nuevo horario (POST)
-        async function saveSchedule(startTime, endTime) {
-            loadingDataEl.classList.remove('hidden');
-            try {
-                const response = await fetch(URLS.ADD, {
+            let confirmar = confirm(`¿Deseas marcar este horario como disponible?\nDesde: ${start.replace('T', ' ')}\nHasta: ${end.replace('T', ' ')}`);
+            
+            if (confirmar) {
+                // **2. Implementación AJAX para marcar disponibilidad (Crear Evento)**
+                fetch('/tu-url-de-marcar-disponibilidad/', { // **Cambia esta URL**
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': getCsrfToken(),
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken 
                     },
                     body: JSON.stringify({
-                        inicio: startTime,
-                        fin: endTime,
-                        // Puedes añadir más campos que necesite tu modelo de Django
-                        // user_id: {{ request.user.id }}, 
+                        start_time: start,
+                        end_time: end,
+                        action: 'add'
                     })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success) {
+                        // Si la operación en Django es exitosa, se añade el evento al calendario
+                        calendar.addEvent({
+                            id: data.event_id, // Necesitas devolver el ID del evento creado
+                            title: 'Disponible',
+                            start: start,
+                            end: end,
+                            color: '#28a745' // Verde para disponible
+                        });
+                        alert('Horario marcado como disponible.');
+                    } else {
+                        alert('Error al marcar disponibilidad: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error en la petición AJAX:', error);
+                    alert('Ocurrió un error de conexión.');
                 });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-                }
-
-                // Si tiene éxito, FullCalendar recarga automáticamente los eventos
-                if (calendar) {
-                    calendar.refetchEvents();
-                }
-                alert('Horario disponible guardado con éxito!');
+            }
+            calendar.unselect(); // Deselecciona el rango
+        },
+        eventClick: function(info) {
+            // Se ejecuta al hacer clic en un evento existente
+            if(info.event.title === "Disponible" && !info.event.extendedProps.is_reserved) { 
+                // Evita eliminar eventos ya reservados
+                let confirmar = confirm(`¿Deseas eliminar este horario disponible?\nID: ${info.event.id}`);
                 
-            } catch (e) {
-                console.error("Error al guardar en Django: ", e);
-                displayError("Error al guardar el horario: " + e.message);
-            } finally {
-                loadingDataEl.classList.add('hidden');
-            }
-        }
-        
-        // Eliminar un horario (DELETE)
-        async function deleteSchedule(scheduleId) {
-            loadingDataEl.classList.remove('hidden');
-            try {
-                // Construir la URL de DELETE usando el ID del horario
-                // (Ej: /api/horarios/123/eliminar/)
-                const deleteUrl = URLS.DELETE.replace('0', scheduleId); 
-
-                const response = await fetch(deleteUrl, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRFToken': getCsrfToken(),
-                        'Content-Type': 'application/json',
-                    }
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                if (confirmar) {
+                    // **3. Implementación AJAX para eliminar disponibilidad (Eliminar Evento)**
+                    fetch('/tu-url-de-marcar-disponibilidad/', { // **Cambia esta URL**
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken 
+                        },
+                        body: JSON.stringify({
+                            event_id: info.event.id,
+                            action: 'delete'
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data.success) {
+                            info.event.remove(); // Elimina el evento del calendario
+                            alert('Horario eliminado correctamente.');
+                        } else {
+                            alert('Error al eliminar horario: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error en la petición AJAX:', error);
+                        alert('Ocurrió un error de conexión.');
+                    });
                 }
-
-                // Si tiene éxito, FullCalendar recarga automáticamente los eventos
-                if (calendar) {
-                    calendar.refetchEvents();
-                }
-                alert('Horario disponible eliminado con éxito.');
-                
-            } catch (e) {
-                console.error("Error al eliminar en Django: ", e);
-                displayError("Error al eliminar el horario: " + e.message);
-            } finally {
-                loadingDataEl.classList.add('hidden');
+            } else if (info.event.extendedProps.is_reserved) {
+                 alert('Este horario ya está reservado y no puede ser eliminado directamente.');
+            }
+        },
+        eventDidMount: function(info) {
+            // Para cambiar el color de los eventos 'Reservados'
+            if (info.event.extendedProps.is_reserved) {
+                 info.el.style.backgroundColor = '#dc3545'; // Rojo para reservados
+                 info.el.style.borderColor = '#dc3545'; 
+            } else {
+                 info.el.style.backgroundColor = '#28a745'; // Verde para disponibles
+                 info.el.style.borderColor = '#28a745'; 
             }
         }
+    });
 
-        // ------------------------------------------
-        // 3. LÓGICA DE FORMULARIO (Sin cambios, es lógica pura JS)
-        // ------------------------------------------
+    calendar.render();
+});
+</script>
 
-        const selectYear = document.getElementById('select-year');
-        const selectMonth = document.getElementById('select-month');
-        const selectDay = document.getElementById('select-day');
-        const selectStartTime = document.getElementById('select-start-time');
-        const selectEndTime = document.getElementById('select-end-time');
+<style>
+/* Estilos adicionales para FullCalendar, tal vez puedes ponerlos en un archivo CSS */
+.fc .fc-toolbar-title {
+    color: var(--accent-gold);
+    font-weight: 600;
+}
 
-        const MONTHS_ES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+.fc {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+}
 
-        function populateYears() {
-            const currentYear = new Date().getFullYear();
-            for (let i = 0; i < 3; i++) {
-                const year = currentYear + i;
-                selectYear.innerHTML += `<option value="${year}">${year}</option>`;
-            }
-        }
+.fc-event {
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+    border: none !important; /* Eliminamos el borde por defecto para usar solo el background-color */
+    padding: 5px;
+}
 
-        function populateMonths() {
-            selectMonth.innerHTML = '';
-            MONTHS_ES.forEach((name, index) => {
-                const monthValue = String(index + 1).padStart(2, '0');
-                selectMonth.innerHTML += `<option value="${monthValue}">${name}</option>`;
-            });
-            const currentMonth = new Date().getMonth();
-            selectMonth.value = String(currentMonth + 1).padStart(2, '0');
-        }
+.card-minimal {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+}
 
-        function getDaysInMonth(year, month) {
-            return new Date(year, month, 0).getDate();
-        }
-
-        function populateDays() {
-            selectDay.innerHTML = '';
-            const year = parseInt(selectYear.value);
-            const month = parseInt(selectMonth.value); 
-            const daysInMonth = getDaysInMonth(year, month);
-
-            for (let i = 1; i <= daysInMonth; i++) {
-                const dayValue = String(i).padStart(2, '0');
-                selectDay.innerHTML += `<option value="${dayValue}">${i}</option>`;
-            }
-            const currentDay = new Date().getDate();
-            selectDay.value = String(currentDay).padStart(2, '0');
-        }
-        
-        function populateTimes() {
-            selectStartTime.innerHTML = '';
-            selectEndTime.innerHTML = '';
-
-            for (let h = 7; h <= 22; h++) {
-                for (let m = 0; m < 60; m += 30) {
-                    const hour = String(h).padStart(2, '0');
-                    const minute = String(m).padStart(2, '0');
-                    const time = `${hour}:${minute}`;
-
-                    if (h < 22) { 
-                        selectStartTime.innerHTML += `<option value="${time}">${time}</option>`;
-                    }
-                    if (h > 7 || (h === 7 && m > 0)) { 
-                        selectEndTime.innerHTML += `<option value="${time}">${time}</option>`;
-                    }
-                }
-            }
-            selectStartTime.value = "11:00";
-            selectEndTime.value = "12:00";
-        }
-
-        function setupFormListeners() {
-            populateYears();
-            populateMonths();
-            populateDays();
-            populateTimes();
-
-            selectYear.addEventListener('change', populateDays);
-            selectMonth.addEventListener('change', populateDays);
-            
-            addScheduleBtn.addEventListener('click', () => {
-                const year = selectYear.value;
-                const month = selectMonth.value;
-                const day = selectDay.value;
-                const startTime = selectStartTime.value;
-                const endTime = selectEndTime.value;
-
-                const datePart = `${year}-${month}-${day}`;
-                
-                const startDateTimeString = `${datePart}T${startTime}:00`;
-                const endDateTimeString = `${datePart}T${endTime}:00`;
-
-                if (startDateTimeString >= endDateTimeString) {
-                    displayError('La hora de inicio debe ser anterior a la hora de fin.');
-                    return;
-                }
-                
-                // Llamar a la función de guardado en Django
-                saveSchedule(startDateTimeString, endDateTimeString);
-            });
-        }
-        
-        // ------------------------------------------
-        // 4. INICIO DE LA APLICACIÓN
-        // ------------------------------------------
-
-        // Inicializar al cargar la página
-        document.addEventListener('DOMContentLoaded', () => {
-            setupFormListeners();
-            initCalendar();
-            // FullCalendar llama a fetchEventsFromDjango internamente al renderizarse
-        });
-
-
-    </script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+/* Colores para las tarjetas de resumen (ajusta a tus variables CSS) */
+.text-gold { color: #FFD700; } 
+.text-light { color: #f8f9fa; }
+</style>
+{% endblock %}
