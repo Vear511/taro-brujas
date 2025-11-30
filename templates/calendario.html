@@ -87,7 +87,7 @@
 
 
     // ----------------------------------------------------
-    // FUNCIÓN PARA AGREGAR DISPONIBILIDAD DESDE EL FORMULARIO (CORREGIDA con mapeo simple)
+    // FUNCIÓN PARA AGREGAR DISPONIBILIDAD (VERSIÓN FINAL Y COMPLETA)
     // ----------------------------------------------------
     function agregarDisponibilidad() {
         const startTime = document.getElementById('start-time').value;
@@ -108,12 +108,12 @@
             return;
         }
         
-        // *** CORRECCIÓN CLAVE: CÁLCULO DEL DÍA DE LA SEMANA ***
+        // *** CÁLCULO DEL DÍA DE LA SEMANA ***
         // getDay() devuelve: 0=Domingo, 1=Lunes, ..., 6=Sábado (Estándar JS).
         // Si tu modelo Django/DB utiliza 0=Domingo, usamos este valor directamente.
-        let diaSemana = startDate.getDay(); 
-        // Si startDate no fuera válido (raro, ya que el input es requerido), diaSemana sería NaN o similar, 
-        // lo que llevaría al error de la BD. Asumimos que el input 'datetime-local' funciona correctamente.
+        const diaSemana = startDate.getDay(); 
+        // Si el valor no es un número válido (NaN), esto podría causar el error si JS intentara enviarlo.
+        // Pero dado que el input es datetime-local, asumimos que startDate es un objeto Date válido.
         // **********************************
 
         // Envío AJAX
@@ -126,7 +126,7 @@
             body: JSON.stringify({
                 start_time: startTime, 
                 end_time: endTime,
-                dia_semana: diaSemana, // <--- ¡VALOR CORREGIDO!
+                dia_semana: diaSemana, // <--- ¡CAMBIO CLAVE AÑADIDO Y NECESARIO!
                 action: 'add' 
             })
         })
@@ -147,6 +147,7 @@
                 alert('Horario marcado como disponible.');
                 document.getElementById('form-disponibilidad').reset(); // Limpia el formulario
             } else {
+                // Muestra el error específico que viene de Django (ej. "Falta el valor de dia_semana...")
                 alert('Error al marcar disponibilidad: ' + data.error);
             }
         })
