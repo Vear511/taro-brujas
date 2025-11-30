@@ -1,5 +1,5 @@
-import json
 from datetime import datetime
+import json # Importamos la librería 'json' que faltaba en tu código original
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -25,8 +25,7 @@ def servicios(request):
 def sobre_nosotras(request):
     return render(request, 'sobre_nosotras.html')
 
-# ... (Las VISTAS DE REPORTES están correctas y se mantienen iguales) ...
-# ==================== VISTAS DE REPORTES ====================
+# --- VISTAS DE REPORTES (SIN CAMBIOS) ---
 
 @login_required
 def reportes_lista(request):
@@ -169,7 +168,7 @@ def eliminar_reporte(request, reporte_id):
     }
     return render(request, 'confirmar_eliminar_reporte.html', context)
 
-# ==================== VISTAS DE DISPONIBILIDAD ====================
+# ==================== VISTAS DE DISPONIBILIDAD (CORREGIDAS) ====================
 
 @login_required # <--- NECESARIO para que request.user funcione
 def calendario_disponibilidad_view(request):
@@ -179,8 +178,8 @@ def calendario_disponibilidad_view(request):
         messages.error(request, 'Solo los tarotistas pueden gestionar su disponibilidad.')
         return redirect('perfil') 
 
-    # 1. Obtener los eventos del usuario
-    horarios = Disponibilidad.objects.filter(usuario=request.user).all()
+    # 1. Obtener los eventos del usuario (CORREGIDO: Usar tarotista=request.user.tarotista)
+    horarios = Disponibilidad.objects.filter(tarotista=request.user.tarotista).all()
     
     # 2. Formatear para FullCalendar
     eventos_fc = []
@@ -188,6 +187,7 @@ def calendario_disponibilidad_view(request):
         eventos_fc.append({
             'id': horario.pk, 
             'title': 'Reservado' if horario.reservado else 'Disponible',
+            # Asumiendo que hora_inicio y hora_fin son campos válidos en Disponibilidad
             'start': horario.hora_inicio.isoformat(),
             'end': horario.hora_fin.isoformat(),
             'extendedProps': {
@@ -196,13 +196,14 @@ def calendario_disponibilidad_view(request):
         })
 
     # 3. Serializar a JSON
+    # La variable 'json' fue importada al inicio del archivo
     horarios_eventos_json = json.dumps(eventos_fc)
 
     context = {
-        # Variables para las tarjetas de resumen
-        'total_horarios': Disponibilidad.objects.filter(usuario=request.user).count(),
-        'horarios_disponibles': Disponibilidad.objects.filter(usuario=request.user, reservado=False).count(),
-        'horarios_reservados': Disponibilidad.objects.filter(usuario=request.user, reservado=True).count(),
+        # Variables para las tarjetas de resumen (CORREGIDO: Usar tarotista=request.user.tarotista)
+        'total_horarios': Disponibilidad.objects.filter(tarotista=request.user.tarotista).count(),
+        'horarios_disponibles': Disponibilidad.objects.filter(tarotista=request.user.tarotista, reservado=False).count(),
+        'horarios_reservados': Disponibilidad.objects.filter(tarotista=request.user.tarotista, reservado=True).count(),
         
         # La variable clave para el frontend
         'horarios_eventos_json': horarios_eventos_json 
@@ -218,11 +219,12 @@ def manejar_disponibilidad_ajax(request):
     """Maneja las peticiones AJAX para añadir o eliminar disponibilidad."""
     # Opcional: Verificar que el usuario sea tarotista
     if not hasattr(request.user, 'tarotista'):
-         return JsonResponse({'success': False, 'error': 'Permiso denegado.'}, status=403)
-         
+          return JsonResponse({'success': False, 'error': 'Permiso denegado.'}, status=403)
+          
     try:
         data = json.loads(request.body)
         action = data.get('action')
+        tarotista_obj = request.user.tarotista # Objeto Tarotista del usuario logueado
 
         if action == 'add':
             # Lógica para agregar un nuevo horario
@@ -230,21 +232,20 @@ def manejar_disponibilidad_ajax(request):
             end_time_str = data.get('end_time')
 
             # Convertir las cadenas de tiempo (YYYY-MM-DDTHH:MM) a objetos datetime
-            # Esto maneja los minutos perfectamente
             start_dt = datetime.fromisoformat(start_time_str)
             end_dt = datetime.fromisoformat(end_time_str)
             
-            # Validación simple de solapamiento (OPCIONAL pero RECOMENDADO)
+            # Validación simple de solapamiento (CORREGIDO: Usar tarotista=tarotista_obj)
             if Disponibilidad.objects.filter(
-                usuario=request.user, 
+                tarotista=tarotista_obj, 
                 hora_inicio__lt=end_dt, 
                 hora_fin__gt=start_dt
             ).exists():
                 return JsonResponse({'success': False, 'error': 'El horario se solapa con uno existente.'}, status=409)
 
-            # Crear el nuevo objeto de disponibilidad
+            # Crear el nuevo objeto de disponibilidad (CORREGIDO: Usar tarotista=tarotista_obj)
             nueva_disponibilidad = Disponibilidad.objects.create(
-                usuario=request.user, 
+                tarotista=tarotista_obj, 
                 hora_inicio=start_dt,
                 hora_fin=end_dt,
                 reservado=False
@@ -254,7 +255,8 @@ def manejar_disponibilidad_ajax(request):
         elif action == 'delete':
             # Lógica para eliminar un horario existente
             event_id = data.get('event_id')
-            horario = Disponibilidad.objects.get(pk=event_id, usuario=request.user, reservado=False)
+            # CORREGIDO: Usar tarotista=tarotista_obj
+            horario = Disponibilidad.objects.get(pk=event_id, tarotista=tarotista_obj, reservado=False)
             horario.delete()
             return JsonResponse({'success': True, 'message': 'Horario eliminado'})
 
