@@ -1,18 +1,18 @@
 from datetime import datetime
-import json # Importamos la librería 'json' que faltaba en tu código original
+import json 
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, Http404
 from django.views.decorators.http import require_POST
-# Importamos csrf_exempt, aunque se recomienda usar el token CSRF estándar
 from django.views.decorators.csrf import csrf_exempt 
 
-# Importaciones de Modelos (Asegúrate de que 'Disponibilidad' esté disponible)
-from .models import Reporte, Disponibilidad # Suponiendo que Disponibilidad está en .models
+# Importaciones de Modelos
+from .models import Reporte, Disponibilidad 
 from citas.models import Cita
 from usuarios.models import Usuario
+# Asumimos que también tienes el modelo Tarotista disponible para request.user.tarotista
 
 # ==================== VISTAS BÁSICAS ====================
 
@@ -30,7 +30,6 @@ def sobre_nosotras(request):
 @login_required
 def reportes_lista(request):
     """Lista de reportes - solo los de la tarotista autenticada"""
-    # Verificar que el usuario sea tarotista
     if not hasattr(request.user, 'tarotista'):
         messages.error(request, 'Solo los tarotistas pueden acceder a esta sección.')
         return redirect('perfil')
@@ -48,7 +47,6 @@ def reportes_lista(request):
 @login_required
 def crear_reporte(request):
     """Crear un nuevo reporte de paciente"""
-    # Verificar que sea tarotista
     if not hasattr(request.user, 'tarotista'):
         messages.error(request, 'Solo los tarotistas pueden crear reportes.')
         return redirect('perfil')
@@ -62,13 +60,11 @@ def crear_reporte(request):
         
         if not paciente_id or not experiencia:
             messages.error(request, 'Por favor completa todos los campos requeridos.')
-            # renderizamos el formulario con context para preservar el estado
             citas = Cita.objects.filter(tarotista=tarotista, estado='completada')
             pacientes = Usuario.objects.filter(tarotista__isnull=True)
             return render(request, 'crear_reporte.html', {'citas': citas, 'pacientes': pacientes})
         
         try:
-            # Aquí tienes una línea duplicada, la he dejado para que la revises:
             paciente = get_object_or_404(Usuario, id=paciente_id) 
             
             cita = None
@@ -107,7 +103,6 @@ def detalle_reporte(request, reporte_id):
     """Ver detalles de un reporte"""
     reporte = get_object_or_404(Reporte, id=reporte_id)
     
-    # Verificar que solo la tarotista que creó el reporte pueda verlo
     if reporte.tarotista.usuario != request.user:
         messages.error(request, 'No tienes permiso para ver este reporte.')
         return redirect('core:reportes')
@@ -123,7 +118,6 @@ def editar_reporte(request, reporte_id):
     """Editar un reporte existente"""
     reporte = get_object_or_404(Reporte, id=reporte_id)
     
-    # Verificar que solo la tarotista que creó el reporte pueda editarlo
     if reporte.tarotista.usuario != request.user:
         messages.error(request, 'No tienes permiso para editar este reporte.')
         return redirect('core:reportes')
@@ -153,7 +147,6 @@ def eliminar_reporte(request, reporte_id):
     """Eliminar un reporte"""
     reporte = get_object_or_404(Reporte, id=reporte_id)
     
-    # Verificar que solo la tarotista que creó el reporte pueda eliminarlo
     if reporte.tarotista.usuario != request.user:
         messages.error(request, 'No tienes permiso para eliminar este reporte.')
         return redirect('core:reportes')
@@ -170,15 +163,14 @@ def eliminar_reporte(request, reporte_id):
 
 # ==================== VISTAS DE DISPONIBILIDAD (CORREGIDAS) ====================
 
-@login_required # <--- NECESARIO para que request.user funcione
+@login_required
 def calendario_disponibilidad_view(request):
     """Muestra el calendario y la interfaz para gestionar la disponibilidad."""
-    # Opcional: Verificar que el usuario sea tarotista si solo ellas pueden gestionarlo
     if not hasattr(request.user, 'tarotista'):
         messages.error(request, 'Solo los tarotistas pueden gestionar su disponibilidad.')
         return redirect('perfil') 
 
-    # 1. Obtener los eventos del usuario (CORREGIDO: Usar tarotista=request.user.tarotista)
+    # CORREGIDO: Usar tarotista=request.user.tarotista
     horarios = Disponibilidad.objects.filter(tarotista=request.user.tarotista).all()
     
     # 2. Formatear para FullCalendar
@@ -187,7 +179,6 @@ def calendario_disponibilidad_view(request):
         eventos_fc.append({
             'id': horario.pk, 
             'title': 'Reservado' if horario.reservado else 'Disponible',
-            # Asumiendo que hora_inicio y hora_fin son campos válidos en Disponibilidad
             'start': horario.hora_inicio.isoformat(),
             'end': horario.hora_fin.isoformat(),
             'extendedProps': {
@@ -195,47 +186,49 @@ def calendario_disponibilidad_view(request):
             }
         })
 
-    # 3. Serializar a JSON
-    # La variable 'json' fue importada al inicio del archivo
     horarios_eventos_json = json.dumps(eventos_fc)
 
+    # CORREGIDO: Usar tarotista=request.user.tarotista
     context = {
-        # Variables para las tarjetas de resumen (CORREGIDO: Usar tarotista=request.user.tarotista)
         'total_horarios': Disponibilidad.objects.filter(tarotista=request.user.tarotista).count(),
         'horarios_disponibles': Disponibilidad.objects.filter(tarotista=request.user.tarotista, reservado=False).count(),
         'horarios_reservados': Disponibilidad.objects.filter(tarotista=request.user.tarotista, reservado=True).count(),
         
-        # La variable clave para el frontend
         'horarios_eventos_json': horarios_eventos_json 
     }
-    # Corregir la ruta de la plantilla si es necesario
-    return render(request, 'calendario.html', context) # <--- Revisar el nombre de tu plantilla
+    return render(request, 'calendario.html', context)
 
 
 @require_POST
-@login_required # <--- NECESARIO para autenticar request.user
-@csrf_exempt # Mantenemos esto porque el frontend usa AJAX sin Forms de Django
+@login_required
+@csrf_exempt 
 def manejar_disponibilidad_ajax(request):
     """Maneja las peticiones AJAX para añadir o eliminar disponibilidad."""
-    # Opcional: Verificar que el usuario sea tarotista
     if not hasattr(request.user, 'tarotista'):
           return JsonResponse({'success': False, 'error': 'Permiso denegado.'}, status=403)
           
     try:
         data = json.loads(request.body)
         action = data.get('action')
-        tarotista_obj = request.user.tarotista # Objeto Tarotista del usuario logueado
+        tarotista_obj = request.user.tarotista 
 
         if action == 'add':
             # Lógica para agregar un nuevo horario
             start_time_str = data.get('start_time')
             end_time_str = data.get('end_time')
+            
+            # === CORRECCIÓN CLAVE: Obtener y validar dia_semana ===
+            dia_semana_val = data.get('dia_semana') 
 
+            # Validar que dia_semana_val no sea None (evita el error NOT NULL)
+            if dia_semana_val is None:
+                return JsonResponse({'success': False, 'error': 'Falta el valor de dia_semana en la petición.'}, status=400)
+            
             # Convertir las cadenas de tiempo (YYYY-MM-DDTHH:MM) a objetos datetime
             start_dt = datetime.fromisoformat(start_time_str)
             end_dt = datetime.fromisoformat(end_time_str)
             
-            # Validación simple de solapamiento (CORREGIDO: Usar tarotista=tarotista_obj)
+            # Validación simple de solapamiento
             if Disponibilidad.objects.filter(
                 tarotista=tarotista_obj, 
                 hora_inicio__lt=end_dt, 
@@ -243,9 +236,10 @@ def manejar_disponibilidad_ajax(request):
             ).exists():
                 return JsonResponse({'success': False, 'error': 'El horario se solapa con uno existente.'}, status=409)
 
-            # Crear el nuevo objeto de disponibilidad (CORREGIDO: Usar tarotista=tarotista_obj)
+            # Crear el nuevo objeto de disponibilidad (INCLUIMOS dia_semana)
             nueva_disponibilidad = Disponibilidad.objects.create(
-                tarotista=tarotista_obj, 
+                tarotista=tarotista_obj,
+                dia_semana=dia_semana_val, # <--- ¡CAMBIO CLAVE!
                 hora_inicio=start_dt,
                 hora_fin=end_dt,
                 reservado=False
@@ -255,7 +249,6 @@ def manejar_disponibilidad_ajax(request):
         elif action == 'delete':
             # Lógica para eliminar un horario existente
             event_id = data.get('event_id')
-            # CORREGIDO: Usar tarotista=tarotista_obj
             horario = Disponibilidad.objects.get(pk=event_id, tarotista=tarotista_obj, reservado=False)
             horario.delete()
             return JsonResponse({'success': True, 'message': 'Horario eliminado'})
