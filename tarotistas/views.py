@@ -6,36 +6,38 @@ from .models import Tarotista
 
 # --- NUEVA FUNCIÓN PARA LA PÁGINA "SOBRE NOSOTRAS" ---
 
+# tarotistas/views.py
+# ... (código anterior) ...
+
 def sobre_nosotras_view(request):
-    """
-    Vista que recupera los datos combinados (JOIN) de las tablas Tarotista y Usuario
-    para mostrarlos en la sección "Conoce a nuestras tarotistas".
-    """
     
     # 1. Realiza la consulta JOIN usando select_related()
-    # Filtramos por cuentas de usuario activas y que sean tarotistas disponibles (opcional)
     tarotistas_data = Tarotista.objects.select_related('usuario').filter(
         usuario__is_active=True,
-        disponible=True # Filtra solo las tarotistas marcadas como disponibles
+        disponible=True # <-- ¡Verifica este filtro!
     ).all()
+    
+    # *** DIAGNÓSTICO 1: Imprimir el queryset de Django ***
+    print(f"Número de tarotistas encontradas: {tarotistas_data.count()}")
     
     tarotistas_listos = []
     
     for t in tarotistas_data:
-        # 2. Mapea los campos al formato esperado por el template
+        # 2. Mapea los campos
         tarotistas_listos.append({
             'nombre': t.usuario.first_name, 
             'descripcion': t.descripcion, 
-            # Asegúrate que la ruta de la imagen sea accesible. Usamos .url para campos FileField/ImageField
             'url_imagen': t.usuario.avatar.url if t.usuario.avatar else '/static/img/placeholder_default.png', 
         })
+        
+    # *** DIAGNÓSTICO 2: Imprimir la lista final enviada al template ***
+    print(f"Lista final para el template: {tarotistas_listos}")
         
     context = {
         'tarotistas': tarotistas_listos
     }
     
     return render(request, 'sobre_nosotras.html', context)
-
 
 # ----------------------------------------------------
 # A continuación, el resto de tus vistas ya existentes:
