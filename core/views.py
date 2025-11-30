@@ -48,7 +48,6 @@ def crear_reporte(request):
     
     if request.method == 'POST':
         paciente_id = request.POST.get('paciente_id')
-        experiencia = request.POST.get('experiencia')
         cita_id = request.POST.get('cita_id', '')
         
         if not paciente_id or not experiencia:
@@ -70,7 +69,6 @@ def crear_reporte(request):
                 tarotista=tarotista,
                 paciente=paciente,
                 cita=cita,
-                experiencia=experiencia,
             )
             
             messages.success(request, 'Reporte creado exitosamente.')
