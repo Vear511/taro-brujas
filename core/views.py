@@ -35,50 +35,57 @@ def servicios(request):
 def sobre_nosotras(request):
     """
     Vista que recupera los datos combinados (Usuario + Tarotista) para
-    la sección pública 'Conoce a nuestras tarotistas'.
-    La consulta es temporalmente simplificada (.all()) para diagnóstico.
+    la sección pública 'Conoce a nuestras tarotistas', garantizando valores de respaldo.
     """
     
-    # Solo intenta hacer la consulta si el modelo Tarotista pudo ser importado
+    # Suponiendo que el modelo Tarotista ya está correctamente importado arriba.
     if 'Tarotista' in globals() and isinstance(Tarotista, type):
         
-        # 1. CONSULTA DE DIAGNÓSTICO: Sin filtros para asegurar que se recuperen todos los datos.
+        # Consulta para traer todos los registros de diagnóstico
         tarotistas_data = Tarotista.objects.select_related('usuario').all()
-        
-        # *** DIAGNÓSTICO: Buscar esto en la consola después de visitar la URL ***
-        print(f"--- INICIO DIAGNÓSTICO CORE/SOBRE_NOSOTRAS ---")
-        print(f"Número de tarotistas encontradas (SIN FILTRO): {tarotistas_data.count()}")
         
         tarotistas_listos = []
         
         for t in tarotistas_data:
             try:
+                # ----------------------------------------------------
+                # GARANTIZAR VALORES DE RESPALDO (FALLBACK)
+                # ----------------------------------------------------
+                
+                # 1. Nombre de Respaldo: Prioriza first_name, luego username, luego un valor por defecto.
+                nombre_a_mostrar = t.usuario.first_name or t.usuario.username or "Tarotista (Nombre Pendiente)"
+                
+                # 2. Descripción de Respaldo: Usa la descripción o un mensaje por defecto.
+                descripcion_a_mostrar = t.descripcion or "Esta tarotista aún no ha completado su biografía, pero está lista para leer tus cartas."
+                
+                # 3. Imagen de Respaldo: Ya implementado. Usa la imagen del avatar o una por defecto.
+                url_imagen_a_mostrar = t.usuario.avatar.url if t.usuario.avatar else '/static/img/placeholder_default.png'
+                
+                # ----------------------------------------------------
+                
                 tarotistas_listos.append({
-                    'nombre': t.usuario.first_name, 
-                    'descripcion': t.descripcion, 
-                    'url_imagen': t.usuario.avatar.url if t.usuario.avatar else '/static/img/placeholder_default.png', 
+                    'nombre': nombre_a_mostrar, 
+                    'descripcion': descripcion_a_mostrar, 
+                    'url_imagen': url_imagen_a_mostrar, 
                 })
+            
             except AttributeError:
-                # Captura si la relación t.usuario está rota o es nula
+                # Este bloque se mantiene para saltar registros si el usuario_id está roto
                 print(f"ERROR DE BD: El registro de Tarotista (ID: {getattr(t, 'id', 'N/A')}) no tiene un usuario válido asociado.")
                 continue
             
-        print(f"Lista final para el template: {tarotistas_listos}")
-        print(f"--- FIN DIAGNÓSTICO CORE/SOBRE_NOSOTRAS ---")
-        
         context = {
-            'tarotistas': tarotistas_listos # <-- Pasar la lista al template
+            'tarotistas': tarotistas_listos
         }
-        
+    
     else:
-        # Si el modelo Tarotista no está disponible, se pasa una lista vacía
+        # Si el modelo Tarotista no se pudo importar (lo que indica un error de arquitectura),
+        # se pasa una lista vacía para evitar fallos.
         context = {
             'tarotistas': [] 
         }
 
-    # El template 'sobre_nosotras.html' debe usar el loop {% for tarotista in tarotistas %}
     return render(request, 'sobre_nosotras.html', context)
-
 
 # --- VISTAS DE REPORTES (SIN CAMBIOS) ---
 
