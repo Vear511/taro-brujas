@@ -30,11 +30,9 @@
                         {% endif %}
                         
                         {% if user.es_tarotista %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'calendario' %}">
-                                    📅 Calendario
+                           
                                 </a>
-                            </li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'tarotistas:calendario' %}">Calendario</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'mis_citas' %}">Mis Citas</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'core:reportes' %}">Reportes</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'tarotistas:lista_clientes' %}">Clientes</a></li>
