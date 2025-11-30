@@ -1,5 +1,5 @@
 # tarotistas/views.py
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from usuarios.models import Usuario
 from .models import Tarotista
@@ -37,11 +37,6 @@ def agregar_tarotista(request):
     
     return render(request, 'agregar_tarotista.html')
 
-
-
-from django.shortcuts import render
-from .models import Tarotista
-
 def lista_tarotistas(request):
     tarotistas = Tarotista.objects.filter(disponible=True)
     return render(request, 'lista_tarotistas.html', {'tarotistas': tarotistas})
@@ -49,3 +44,18 @@ def lista_tarotistas(request):
 def perfil_tarotista(request, tarotista_id):
     tarotista = Tarotista.objects.get(id=tarotista_id)
     return render(request, 'perfil_tarotista.html', {'tarotista': tarotista})
+
+@login_required
+@user_passes_test(lambda u: hasattr(u, 'tarotista'))
+def lista_clientes(request):
+    # Obtener todos los usuarios que no son tarotistas ni staff
+    clientes = Usuario.objects.exclude(tarotista__isnull=False).exclude(is_staff=True)
+    return render(request, 'lista_clientes.html', {'clientes': clientes})
+
+@login_required
+@user_passes_test(lambda u: hasattr(u, 'tarotista'))
+def bloquear_usuario(request, usuario_id):
+    usuario = get_object_or_404(Usuario, id=usuario_id)
+    usuario.bloqueado = not usuario.bloqueado
+    usuario.save()
+    return redirect('tarotistas:lista_clientes')
