@@ -1,26 +1,28 @@
 from datetime import datetime
-import json 
+import json
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, Http404
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt 
+from django.views.decorators.csrf import csrf_exempt
 
 # Importaciones de Modelos
-from .models import Reporte, Disponibilidad 
+# NOTA: Los modelos Reporte y Disponibilidad se asumen locales a esta aplicación,
+# o se configuran en el settings.py para ser resueltos correctamente.
+from .models import Reporte, Disponibilidad
 from citas.models import Cita
 from usuarios.models import Usuario
 
 # *** IMPORTACIÓN ADICIONAL NECESARIA ***
 # Se asume que el modelo Tarotista reside en la aplicación 'tarotistas'
 try:
-    from tarotistas.models import Tarotista 
+    from .models import Tarotista # Cambio: asumo que Tarotista está en el mismo .models
 except ImportError:
     # Manejo de error si la app 'tarotistas' no existe o no tiene el modelo
     class Tarotista: # Define un placeholder si no existe
-        pass 
+        pass
 # **************************************
 
 
@@ -36,6 +38,8 @@ def sobre_nosotras(request):
     """
     Vista que recupera los datos combinados (Usuario + Tarotista) para
     la sección pública 'Conoce a nuestras tarotistas', garantizando valores de respaldo.
+
+    Utiliza select_related('usuario') para realizar el INNER JOIN entre Tarotista y Usuario.
     """
     
     # Suponiendo que el modelo Tarotista ya está correctamente importado arriba.
@@ -87,7 +91,7 @@ def sobre_nosotras(request):
 
     return render(request, 'sobre_nosotras.html', context)
 
-# --- VISTAS DE REPORTES (SIN CAMBIOS) ---
+# --- VISTAS DE REPORTES ---
 
 @login_required
 def reportes_lista(request):
