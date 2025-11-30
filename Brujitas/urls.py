@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from django.shortcuts import render, redirect
-from django.contrib.auth import login
+from django.contrib.auth import login, authenticate # Importar authenticate aquí
 from django.contrib import messages
 from usuarios.models import Usuario
 from tarotistas.models import Tarotista
@@ -69,7 +69,7 @@ def mis_citas(request):
     return render(request, 'mis_citas.html')
 
 # ---------------------------
-# Vista de registro
+# Vista de registro (CORREGIDA)
 # ---------------------------
 def registro(request):
     data = {}
@@ -129,6 +129,9 @@ def registro(request):
                 last_name=last_name,
                 rut=rut
             )
+            # 🟢 CORRECCIÓN: Adjuntar el backend al usuario antes de llamar a login()
+            usuario.backend = 'django.contrib.auth.backends.ModelBackend'
+            
             login(request, usuario)
             messages.success(request, f'¡Bienvenido/a {usuario.first_name}! Cuenta creada exitosamente.')
             return redirect('home')
@@ -164,16 +167,24 @@ def editar_usuario(request, usuario_id):
     return render(request, 'admin/editar_usuario.html', {'usuario_id': usuario_id})
 
 # ---------------------------
-# Vista de login personalizada
+# Vista de login personalizada (CORREGIDA)
 # ---------------------------
 def login_view(request):
-    from django.contrib.auth import authenticate, login
-    from django.contrib import messages
+    # Ya se importaron authenticate y login al inicio del archivo
+    from django.contrib import messages 
 
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
+        
+        # 🟢 CORRECCIÓN: Especificar el backend para la autenticación
+        user = authenticate(
+            request, 
+            username=username, 
+            password=password,
+            backend='django.contrib.auth.backends.ModelBackend' 
+        )
+        
         if user is not None:
             if user.bloqueado:
                 messages.error(request, 'Tu cuenta ha sido bloqueada. Contacta al administrador.')
@@ -182,6 +193,7 @@ def login_view(request):
                 return redirect('home')
         else:
             messages.error(request, 'Credenciales inválidas.')
+            
     return render(request, 'registration/login.html')
 
 # ---------------------------
