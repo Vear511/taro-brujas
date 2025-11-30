@@ -161,7 +161,7 @@ def eliminar_reporte(request, reporte_id):
     }
     return render(request, 'confirmar_eliminar_reporte.html', context)
 
-# ==================== VISTAS DE DISPONIBILIDAD (CORREGIDAS) ====================
+# ==================== VISTAS DE DISPONIBILIDAD (CORREGIDAS Y ROBUSTAS) ====================
 
 @login_required
 def calendario_disponibilidad_view(request):
@@ -179,7 +179,10 @@ def calendario_disponibilidad_view(request):
         eventos_fc.append({
             'id': horario.pk, 
             'title': 'Reservado' if horario.reservado else 'Disponible',
-            'start': horario.hora_inicio.isoformat(),
+            # Las fechas de inicio y fin son de tipo TimeField en models.py, 
+            # pero la vista las recupera del objeto datetime completo
+            # Usar .isoformat() para incluirlas en el JSON
+            'start': horario.hora_inicio.isoformat(), 
             'end': horario.hora_fin.isoformat(),
             'extendedProps': {
                 'is_reserved': horario.reservado 
@@ -213,16 +216,21 @@ def manejar_disponibilidad_ajax(request):
         tarotista_obj = request.user.tarotista 
 
         if action == 'add':
-            # Lógica para agregar un nuevo horario
+            # Obtener datos de tiempo
             start_time_str = data.get('start_time')
             end_time_str = data.get('end_time')
-            
-            # === CORRECCIÓN CLAVE: Obtener y validar dia_semana ===
             dia_semana_val = data.get('dia_semana') 
 
-            # Validar que dia_semana_val no sea None (evita el error NOT NULL)
+            # 1. Validar que dia_semana_val no sea None (evita el error NOT NULL)
             if dia_semana_val is None:
-                return JsonResponse({'success': False, 'error': 'Falta el valor de dia_semana en la petición.'}, status=400)
+                return JsonResponse({'success': False, 'error': 'Falta el valor de dia_semana en la petición AJAX.'}, status=400)
+            
+            # 2. Convertir y validar que el valor es un entero (ROBUSTEZ)
+            try:
+                # Usamos int() para garantizar que el valor sea un entero, incluso si JSON lo leyó como float o cadena
+                dia_semana_final = int(dia_semana_val) 
+            except (TypeError, ValueError):
+                return JsonResponse({'success': False, 'error': 'El dia_semana debe ser un número entero (0-6).'}, status=400)
             
             # Convertir las cadenas de tiempo (YYYY-MM-DDTHH:MM) a objetos datetime
             start_dt = datetime.fromisoformat(start_time_str)
@@ -236,10 +244,10 @@ def manejar_disponibilidad_ajax(request):
             ).exists():
                 return JsonResponse({'success': False, 'error': 'El horario se solapa con uno existente.'}, status=409)
 
-            # Crear el nuevo objeto de disponibilidad (INCLUIMOS dia_semana)
+            # Crear el nuevo objeto de disponibilidad
             nueva_disponibilidad = Disponibilidad.objects.create(
                 tarotista=tarotista_obj,
-                dia_semana=dia_semana_val, # <--- ¡CAMBIO CLAVE!
+                dia_semana=dia_semana_final, # <-- USAMOS EL VALOR CONVERTIDO Y SEGURO
                 hora_inicio=start_dt,
                 hora_fin=end_dt,
                 reservado=False
@@ -259,4 +267,5 @@ def manejar_disponibilidad_ajax(request):
     except Disponibilidad.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Horario no encontrado o ya reservado.'}, status=404)
     except Exception as e:
-        return JsonResponse({'success': False, 'error': f'Error interno: {str(e)}'}, status=500)
+        # Esto atrapará errores como el formato ISO incorrecto de la fecha o JSON inválido
+        return JsonResponse({'success': False, 'error': f'Error interno en el servidor: {str(e)}'}, status=500)
