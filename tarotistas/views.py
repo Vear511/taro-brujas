@@ -1,14 +1,19 @@
 # tarotistas/views.py
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from usuarios.models import Usuario
 from .models import Tarotista
 
+
+# ======================================================
+# AGREGAR TAROTISTA (SOLO STAFF)
+# ======================================================
 @user_passes_test(lambda u: u.is_staff)
 def agregar_tarotista(request):
     if request.method == 'POST':
         try:
-            # Crear usuario
+            # Crear usuario asociado al tarotista
             usuario = Usuario.objects.create_user(
                 username=request.POST['username'],
                 email=request.POST['email'],
@@ -16,7 +21,7 @@ def agregar_tarotista(request):
                 first_name=request.POST['first_name'],
                 last_name=request.POST['last_name']
             )
-            
+
             # Crear tarotista
             tarotista = Tarotista.objects.create(
                 usuario=usuario,
@@ -24,48 +29,78 @@ def agregar_tarotista(request):
                 experiencia=int(request.POST['experiencia']),
                 precio_por_sesion=float(request.POST['precio_por_sesion']),
                 descripcion=request.POST['descripcion'],
-                disponible=request.POST['disponible'] == 'true'
+                # ✅ CORRECCIÓN REAL
+                disponible='disponible' in request.POST
             )
-            
+
             return redirect('gestion_tarotistas')
-            
+
         except Exception as e:
-            # Manejar errores (usuario ya existe, etc.)
             return render(request, 'agregar_tarotista.html', {
                 'error': f'Error al crear tarotista: {str(e)}'
             })
-    
+
     return render(request, 'agregar_tarotista.html')
 
+
+# ======================================================
+# LISTA DE TAROTISTAS DISPONIBLES (CLIENTES)
+# ======================================================
 def lista_tarotistas(request):
     tarotistas = Tarotista.objects.filter(disponible=True)
-    return render(request, 'lista_tarotistas.html', {'tarotistas': tarotistas})
+    return render(request, 'lista_tarotistas.html', {
+        'tarotistas': tarotistas
+    })
 
+
+# ======================================================
+# PERFIL DE TAROTISTA
+# ======================================================
 def perfil_tarotista(request, tarotista_id):
-    tarotista = Tarotista.objects.get(id=tarotista_id)
-    return render(request, 'perfil_tarotista.html', {'tarotista': tarotista})
+    tarotista = get_object_or_404(Tarotista, id=tarotista_id)
+    return render(request, 'perfil_tarotista.html', {
+        'tarotista': tarotista
+    })
 
+
+# ======================================================
+# LISTA DE CLIENTES (SOLO TAROTISTAS)
+# ======================================================
 @login_required
 @user_passes_test(lambda u: hasattr(u, 'tarotista'))
 def lista_clientes(request):
-    # Obtener todos los usuarios que no son tarotistas ni staff
-    clientes = Usuario.objects.exclude(tarotista__isnull=False).exclude(is_staff=True)
-    return render(request, 'lista_clientes.html', {'clientes': clientes})
+    clientes = Usuario.objects.exclude(
+        tarotista__isnull=False
+    ).exclude(
+        is_staff=True
+    )
 
+    return render(request, 'lista_clientes.html', {
+        'clientes': clientes
+    })
+
+
+# ======================================================
+# BLOQUEAR / DESBLOQUEAR USUARIO
+# ======================================================
 @login_required
 @user_passes_test(lambda u: hasattr(u, 'tarotista'))
 def bloquear_usuario(request, usuario_id):
     usuario = get_object_or_404(Usuario, id=usuario_id)
     usuario.bloqueado = not usuario.bloqueado
     usuario.save()
+
     return redirect('tarotistas:lista_clientes')
+
+
+# ======================================================
+# CALENDARIO DE LA TAROTISTA
+# ======================================================
+@login_required
 def calendario(request):
-    """
-    Vista del calendario para la gestión de disponibilidad y citas de la tarotista.
-    """
-    # Lógica futura para obtener citas, disponibilidad, etc.
     context = {
         'tarotista': request.user.tarotista if hasattr(request.user, 'tarotista') else None,
-        # ... más datos del calendario
+        # aquí puedes agregar citas, horarios, etc.
     }
+
     return render(request, 'calendario.html', context)
