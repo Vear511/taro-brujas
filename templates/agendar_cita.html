@@ -30,18 +30,19 @@ function generarHorariosFalsos() {
     const hoy = new Date();
     const dia = hoy.toISOString().split('T')[0]; // "YYYY-MM-DD"
     
-    let horaInicio = 9;
-    while (horaInicio < 17) {
-        const startHour = Math.floor(horaInicio);
-        const startMinutes = (horaInicio % 1) === 0 ? '00' : '30';
-        const endHour = Math.floor(horaInicio + 0.5);
-        const endMinutes = ((horaInicio + 0.5) % 1) === 0 ? '00' : '30';
+    let hora = 9;
+    while (hora < 17) {
+        const startHour = Math.floor(hora).toString().padStart(2,'0');
+        const startMinute = (hora % 1 === 0) ? '00' : '30';
+        const endTime = hora + 0.5;
+        const endHour = Math.floor(endTime).toString().padStart(2,'0');
+        const endMinute = (endTime % 1 === 0) ? '00' : '30';
 
-        const start = `${dia}T${startHour.toString().padStart(2,'0')}:${startMinutes}`;
-        const end = `${dia}T${endHour.toString().padStart(2,'0')}:${endMinutes}`;
+        const start = `${dia}T${startHour}:${startMinute}:00`;
+        const end = `${dia}T${endHour}:${endMinute}:00`;
 
         eventosFalsos.push({
-            id: `fake-${horaInicio}`,
+            id: `fake-${hora}`,
             title: 'Disponible',
             start: start,
             end: end,
@@ -49,10 +50,12 @@ function generarHorariosFalsos() {
             extendedProps: { is_reserved: false }
         });
 
-        horaInicio += 0.5; // Incremento de 30 min
+        hora += 0.5;
     }
+
     return eventosFalsos;
 }
+
 
 // ----------------------------
 // INICIALIZACIÓN DE FULLCALENDAR
