@@ -4,56 +4,47 @@
 <div class="container mt-5 pt-4">
     <div class="row mb-4">
         <div class="col-12 text-center">
-            <h1 class="hero-title">✨ Reserva tu Lectura de Tarot</h1>
-            <p class="text-muted">Selecciona un horario disponible en el calendario para agendar tu cita.</p>
+            <h1 class="hero-title">✨ Reserva tu Lectura</h1>
+            <p class="text-muted">Selecciona un bloque verde en el calendario para agendar.</p>
         </div>
     </div>
 
     <div class="row">
         <div class="col-lg-8 mb-4">
             <div class="card-minimal p-4">
-                <div id="calendar-cliente"></div>
+                <div id="calendar"></div>
             </div>
         </div>
 
         <div class="col-lg-4 mb-4">
-            <div id="form-reserva-container" class="card-minimal p-4 shadow" style="display: none; border: 2px solid var(--accent-gold);">
+            <div id="wrapper-reserva" class="card-minimal p-4" style="display: none;">
                 <h4 class="text-gold mb-3">Confirmar Cita</h4>
-                <form id="form-agendar" onsubmit="event.preventDefault(); confirmarCita();">
+                <form id="form-cita" onsubmit="event.preventDefault(); agendarCita();">
                     {% csrf_token %}
-                    <input type="hidden" id="horario-id" name="horario_id">
+                    <input type="hidden" id="event-id" name="event_id">
                     
                     <div class="mb-3">
-                        <label class="form-label text-light">Horario Seleccionado:</label>
-                        <p id="info-horario" class="fw-bold text-white bg-purple p-2 rounded"></p>
+                        <label class="form-label text-light small">Horario seleccionado:</label>
+                        <div id="display-fecha" class="p-2 rounded" style="background: rgba(255,255,255,0.1); color: #fff;"></div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="nombre" class="form-label text-light">Tu Nombre:</label>
-                        <input type="text" class="form-control" id="nombre" required>
+                        <label for="cliente-nombre" class="form-label text-light">Nombre Completo:</label>
+                        <input type="text" class="form-control" id="cliente-nombre" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="email" class="form-label text-light">Correo Electrónico:</label>
-                        <input type="email" class="form-control" id="email" required>
+                        <label for="cliente-email" class="form-label text-light">Correo Electrónico:</label>
+                        <input type="email" class="form-control" id="cliente-email" required>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="servicio" class="form-label text-light">Tipo de Lectura:</label>
-                        <select class="form-select" id="servicio" required>
-                            <option value="general">Lectura General</option>
-                            <option value="amor">Lectura del Amor</option>
-                            <option value="trabajo">Lectura de Trabajo</option>
-                        </select>
-                    </div>
-
-                    <button type="submit" class="btn btn-gold w-100">Reservar Ahora</button>
-                    <button type="button" onclick="cancelarSeleccion()" class="btn btn-outline-light w-100 mt-2 btn-sm">Cancelar</button>
+                    <button type="submit" class="btn btn-gold w-100">Confirmar Reserva</button>
+                    <button type="button" class="btn btn-outline-light w-100 mt-2 btn-sm" onclick="cancelarSeleccion()">Cancelar</button>
                 </form>
             </div>
-            
-            <div id="instrucciones" class="card-minimal p-4 text-center">
-                <p class="text-muted">👈 Por favor, haz clic en un bloque de color verde en el calendario para comenzar tu reserva.</p>
+
+            <div id="instrucciones-cliente" class="card-minimal p-4 text-center">
+                <p class="text-muted italic">Selecciona un horario disponible en el calendario para ver los detalles de la reserva.</p>
             </div>
         </div>
     </div>
@@ -64,34 +55,51 @@
 
 <script>
     let calendar;
-    const reservaUrl = "{% url 'core:crear_cita_ajax' %}"; // Ajusta a tu URL real
+    // Usamos la misma lógica de URL y CSRF que tu página de gestión
+    const reservaUrl = "{% url 'core:manejar_disponibilidad_ajax' %}"; 
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
 
     document.addEventListener('DOMContentLoaded', function() {
-        var calendarEl = document.getElementById('calendar-cliente');
-        // Cargamos los eventos (solo los disponibles)
-        var eventos = JSON.parse('{{ horarios_disponibles_json|safe }}' || '[]');
+        var calendarEl = document.getElementById('calendar');
+        var eventos = JSON.parse('{{ horarios_eventos_json|safe }}' || '[]');
 
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'timeGridWeek',
             locale: 'es',
             allDaySlot: false,
-            slotDuration: '00:30:00',
             headerToolbar: {
                 left: 'prev,next today',
+                center: 'title',
                 right: 'timeGridWeek,timeGridDay'
             },
             events: eventos,
             eventClick: function(info) {
-                // Solo permitir clics en horarios NO reservados
                 if (!info.event.extendedProps.is_reserved) {
-                    seleccionarHorario(info.event);
+                    mostrarFormulario(info.event);
                 } else {
-                    alert("Este horario ya está ocupado. Por favor elige uno verde.");
+                    alert('Este horario ya está reservado.');
                 }
             },
             eventDidMount: function(info) {
+                // Solo mostramos lo que está disponible (verde)
                 if (info.event.extendedProps.is_reserved) {
-                    info.el.style.display = 'none'; // Ocultar los ocupados para el cliente
+                    info.el.style.backgroundColor = '#444'; // Color neutro para ocupados
+                    info.el.style.opacity = '0.5';
                 } else {
                     info.el.style.backgroundColor = '#28a745';
                     info.el.style.cursor = 'pointer';
@@ -101,61 +109,61 @@
         calendar.render();
     });
 
-    function seleccionarHorario(event) {
-        document.getElementById('instrucciones').style.display = 'none';
-        document.getElementById('form-reserva-container').style.display = 'block';
+    function mostrarFormulario(event) {
+        document.getElementById('instrucciones-cliente').style.display = 'none';
+        document.getElementById('wrapper-reserva').style.display = 'block';
         
-        document.getElementById('horario-id').value = event.id;
-        document.getElementById('info-horario').innerText = event.start.toLocaleString();
-        
-        // Scroll suave al formulario en móviles
-        document.getElementById('form-reserva-container').scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('event-id').value = event.id;
+        document.getElementById('display-fecha').innerText = event.start.toLocaleString();
     }
 
     function cancelarSeleccion() {
-        document.getElementById('form-reserva-container').style.display = 'none';
-        document.getElementById('instrucciones').style.display = 'block';
+        document.getElementById('wrapper-reserva').style.display = 'none';
+        document.getElementById('instrucciones-cliente').style.display = 'block';
     }
 
-    function confirmarCita() {
-        const payload = {
-            horario_id: document.getElementById('horario-id').value,
-            nombre: document.getElementById('nombre').value,
-            email: document.getElementById('email').value,
-            servicio: document.getElementById('servicio').value,
-            action: 'book'
-        };
+    function agendarCita() {
+        const eventId = document.getElementById('event-id').value;
+        const nombre = document.getElementById('cliente-nombre').value;
+        const email = document.getElementById('cliente-email').value;
 
         fetch(reservaUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': csrftoken
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                event_id: eventId,
+                nombre_cliente: nombre,
+                email_cliente: email,
+                action: 'book' // Enviamos una acción diferente para que tu vista sepa que es una reserva
+            })
         })
         .then(response => response.json())
         .then(data => {
             if(data.success) {
-                alert('¡Cita agendada con éxito! Revisa tu correo.');
-                location.reload(); // Recargamos para actualizar el calendario
+                alert('¡Cita agendada correctamente!');
+                location.reload();
             } else {
                 alert('Error: ' + data.error);
             }
-        });
+        })
+        .catch(error => console.error('Error:', error));
     }
 </script>
 
 <style>
-/* Reutilizando tus estilos de gestión */
+/* Mantenemos tus estilos exactos */
 .card-minimal {
-    background: #1a1a2e; /* Ajusta al color de tu base */
+    background: var(--bg-card);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 12px;
+    backdrop-filter: blur(10px);
 }
-.bg-purple { background: linear-gradient(135deg, #6f42c1, #8a63d2); }
 .text-gold { color: #FFD700; }
-.btn-gold { background-color: #FFD700; color: #000; border: none; font-weight: bold; }
+.btn-gold { background-color: #FFD700; color: #000; border: none; font-weight: 600; }
 .btn-gold:hover { background-color: #e5c100; }
+.fc .fc-toolbar-title { color: var(--accent-gold); }
 </style>
-{% endblock %}
+{% endblock %}+
