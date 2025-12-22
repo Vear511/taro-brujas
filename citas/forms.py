@@ -1,23 +1,16 @@
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from .forms import CitaForm
+from django import forms
+from .models import Cita
+from tarotistas.models import Tarotista
 
-@login_required
-def mis_citas(request):
-    return render(request, 'mis_citas.html')
-
-@login_required
-def agendar_cita(request):
-    if request.method == 'POST':
-        form = CitaForm(request.POST)
-        if form.is_valid():
-            # Aquí luego guardarás la cita
-            return render(request, 'cita_confirmada.html')
-    else:
-        form = CitaForm()
-
-    context = {
-        'form': form,
-        'servicio_seleccionado': None,
-    }
-    return render(request, 'agendar_cita.html', context)
+class CitaForm(forms.Form):
+    tarotista = forms.ModelChoiceField(
+        queryset=Tarotista.objects.filter(disponible=True),
+        empty_label="Selecciona un tarotista"
+    )
+    fecha = forms.DateField(widget=forms.SelectDateWidget)
+    hora = forms.TimeField(widget=forms.TimeInput(attrs={'type': 'time'}))
+    notas = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 3}),
+        required=False,
+        label='Notas o preguntas específicas'
+    )
