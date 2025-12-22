@@ -37,8 +37,6 @@
                             {% for tarotista in tarotistas %}
                                 <option value="{{ tarotista.id }}">
                                     {{ tarotista.usuario.get_full_name }}
-                                    — {{ tarotista.especialidad }}
-                                    — ${{ tarotista.precio_por_sesion }}
                                 </option>
                             {% empty %}
                                 <option disabled>
