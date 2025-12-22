@@ -9,7 +9,51 @@
         </div>
     </div>
 
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Total Horarios</h5>
+                <p class="text-light display-6">{{ total_horarios|default:'0' }}</p> 
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Disponibles</h5>
+                <p class="text-light display-6">{{ horarios_disponibles|default:'0' }}</p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Reservados</h5>
+                <p class="text-light display-6">{{ horarios_reservados|default:'0' }}</p>
+            </div>
+        </div>
     </div>
+    
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card-minimal p-4">
+                <h4 class="text-gold mb-3">➕ Agregar Nuevo Bloque</h4>
+                
+                <form id="form-disponibilidad" onsubmit="event.preventDefault(); agregarDisponibilidad();">
+                    {% csrf_token %} 
+                    
+                    <div class="mb-3">
+                        <label for="start-time" class="form-label text-light">Inicio (Día y Hora):</label>
+                        <input type="datetime-local" class="form-control" id="start-time" name="start_time" required step="60"> 
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="end-time" class="form-label text-light">Fin (Día y Hora):</label>
+                        <input type="datetime-local" class="form-control" id="end-time" name="end_time" required step="60">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-gold w-100">Marcar Disponibilidad</button>
+                    <small class="text-muted mt-2 d-block">Incluye minutos (Ej: 13:22)</small>
+                </form>
+            </div>
+        </div>
+
         <div class="col-lg-8 mb-4">
             <div class="card-minimal p-4">
                 <div id="calendar"></div>
