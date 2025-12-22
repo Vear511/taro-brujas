@@ -25,37 +25,45 @@
 // ----------------------------
 // FUNCIONES DE SIMULACIÓN
 // ----------------------------
-function generarHorariosFalsos() {
-    const eventosFalsos = [];
-    const hoy = new Date();
-    const dia = hoy.toISOString().split('T')[0]; // "YYYY-MM-DD"
+function generarHorariosAleatorios(dias=5) {
+    const eventos = [];
+    const servicios = ["Tarot Básico", "Tarot Completo", "Tarot del Amor", "Tarot Kármico"];
     
-    let hora = 9;
-    while (hora < 17) {
-        const startHour = Math.floor(hora).toString().padStart(2,'0');
-        const startMinute = (hora % 1 === 0) ? '00' : '30';
-        const endTime = hora + 0.5;
-        const endHour = Math.floor(endTime).toString().padStart(2,'0');
-        const endMinute = (endTime % 1 === 0) ? '00' : '30';
+    const hoy = new Date();
+    
+    for(let i=0; i<dias; i++) {
+        const dia = new Date(hoy);
+        dia.setDate(hoy.getDate() + i);
 
-        const start = `${dia}T${startHour}:${startMinute}:00`;
-        const end = `${dia}T${endHour}:${endMinute}:00`;
+        const diaStr = dia.toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        // Generar entre 3 y 6 horarios aleatorios por día
+        const cantidad = Math.floor(Math.random()*4) + 3;
+        for(let j=0; j<cantidad; j++) {
+            // Hora entre 9 y 16, incrementos de 30 min
+            let hora = 9 + Math.floor(Math.random()*14)/2;
+            const startHour = Math.floor(hora).toString().padStart(2,'0');
+            const startMinute = (hora % 1 === 0) ? '00' : '30';
+            const endTime = hora + 0.5;
+            const endHour = Math.floor(endTime).toString().padStart(2,'0');
+            const endMinute = (endTime % 1 === 0) ? '00' : '30';
 
-        eventosFalsos.push({
-            id: `fake-${hora}`,
-            title: 'Disponible',
-            start: start,
-            end: end,
-            color: '#28a745',
-            extendedProps: { is_reserved: false }
-        });
+            const start = `${diaStr}T${startHour}:${startMinute}:00`;
+            const end = `${diaStr}T${endHour}:${endMinute}:00`;
 
-        hora += 0.5;
+            eventos.push({
+                id: `event-${i}-${j}`,
+                title: 'Disponible',
+                start: start,
+                end: end,
+                color: '#28a745',
+                extendedProps: { is_reserved: false }
+            });
+        }
     }
 
-    return eventosFalsos;
+    return eventos;
 }
-
 
 // ----------------------------
 // INICIALIZACIÓN DE FULLCALENDAR
@@ -63,10 +71,10 @@ function generarHorariosFalsos() {
 document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
 
-    // Horarios simulados
-    var eventos = generarHorariosFalsos();
+    // Horarios aleatorios para 5 días
+    var eventos = generarHorariosAleatorios(5);
 
-    // Servicios de tarot
+    // Lista de servicios de tarot
     const servicios = [
         {nombre: "Tarot Básico", duracion: 30, precio: 15000},
         {nombre: "Tarot Completo", duracion: 60, precio: 25000},
@@ -89,15 +97,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         eventClick: function(info) {
             if(!info.event.extendedProps.is_reserved) {
-                info.event.setProp('title', 'Ocupado');
-                info.event.setExtendedProp('is_reserved', true);
-                info.event.setProp('color', '#dc3545');
-
-                let mensaje = "Selecciona un servicio:\n";
-                servicios.forEach(s => {
-                    mensaje += `${s.nombre} - $${s.precio} - ${s.duracion} min\n`;
-                });
-                alert(mensaje);
+                // Crear lista de opciones
+                let opciones = servicios.map((s,i) => `${i+1}. ${s.nombre} - $${s.precio} - ${s.duracion} min`).join('\n');
+                let seleccion = prompt(`Selecciona el servicio:\n${opciones}`);
+                let index = parseInt(seleccion) - 1;
+                if(!isNaN(index) && index>=0 && index<servicios.length) {
+                    info.event.setProp('title', `Ocupado (${servicios[index].nombre})`);
+                    info.event.setExtendedProp('is_reserved', true);
+                    info.event.setProp('color', '#dc3545');
+                    alert(`Has reservado: ${servicios[index].nombre}`);
+                } else {
+                    alert('Selección inválida.');
+                }
             } else {
                 alert('Este horario ya está ocupado.');
             }
@@ -146,4 +157,5 @@ document.addEventListener('DOMContentLoaded', function() {
     backdrop-filter: blur(10px);
 }
 </style>
+
 {% endblock %}
