@@ -1,50 +1,20 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-5 pt-4">
+<div class="container mt-5">
     <div class="row mb-4">
         <div class="col-12 text-center">
-            <h1 class="hero-title">✨ Reserva tu Lectura</h1>
-            <p class="text-muted">Selecciona un bloque verde en el calendario para agendar.</p>
+            <h2 class="hero-title">✨ Agendar Cita de Tarot</h2>
+            <p class="text-muted">
+                Selecciona un horario disponible en el calendario para reservar tu cita.
+            </p>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-lg-8 mb-4">
+        <div class="col-lg-10 mx-auto">
             <div class="card-minimal p-4">
                 <div id="calendar"></div>
-            </div>
-        </div>
-
-        <div class="col-lg-4 mb-4">
-            <div id="wrapper-reserva" class="card-minimal p-4" style="display: none;">
-                <h4 class="text-gold mb-3">Confirmar Cita</h4>
-                <form id="form-cita" onsubmit="event.preventDefault(); agendarCita();">
-                    {% csrf_token %}
-                    <input type="hidden" id="event-id" name="event_id">
-                    
-                    <div class="mb-3">
-                        <label class="form-label text-light small">Horario seleccionado:</label>
-                        <div id="display-fecha" class="p-2 rounded" style="background: rgba(255,255,255,0.1); color: #fff;"></div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="cliente-nombre" class="form-label text-light">Nombre Completo:</label>
-                        <input type="text" class="form-control" id="cliente-nombre" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="cliente-email" class="form-label text-light">Correo Electrónico:</label>
-                        <input type="email" class="form-control" id="cliente-email" required>
-                    </div>
-
-                    <button type="submit" class="btn btn-gold w-100">Confirmar Reserva</button>
-                    <button type="button" class="btn btn-outline-light w-100 mt-2 btn-sm" onclick="cancelarSeleccion()">Cancelar</button>
-                </form>
-            </div>
-
-            <div id="instrucciones-cliente" class="card-minimal p-4 text-center">
-                <p class="text-muted italic">Selecciona un horario disponible en el calendario para ver los detalles de la reserva.</p>
             </div>
         </div>
     </div>
@@ -54,116 +24,89 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <script>
+    const reservaUrl = "{% url 'core:manejar_reserva_ajax' %}";
     let calendar;
-    // Usamos la misma lógica de URL y CSRF que tu página de gestión
-    const reservaUrl = "{% url 'core:manejar_disponibilidad_ajax' %}"; 
-    
+
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            document.cookie.split(';').forEach(cookie => {
+                cookie = cookie.trim();
+                if (cookie.startsWith(name + '=')) {
                     cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
                 }
-            }
+            });
         }
         return cookieValue;
     }
+
     const csrftoken = getCookie('csrftoken');
 
     document.addEventListener('DOMContentLoaded', function() {
-        var calendarEl = document.getElementById('calendar');
-        var eventos = JSON.parse('{{ horarios_eventos_json|safe }}' || '[]');
+        const calendarEl = document.getElementById('calendar');
+        const eventos = JSON.parse('{{ horarios_eventos_json|safe }}' || '[]');
 
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'timeGridWeek',
             locale: 'es',
             allDaySlot: false,
+            slotDuration: '00:30:00',
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
                 right: 'timeGridWeek,timeGridDay'
             },
             events: eventos,
+
             eventClick: function(info) {
-                if (!info.event.extendedProps.is_reserved) {
-                    mostrarFormulario(info.event);
-                } else {
-                    alert('Este horario ya está reservado.');
-                }
-            },
-            eventDidMount: function(info) {
-                // Solo mostramos lo que está disponible (verde)
                 if (info.event.extendedProps.is_reserved) {
-                    info.el.style.backgroundColor = '#444'; // Color neutro para ocupados
-                    info.el.style.opacity = '0.5';
+                    alert('Este horario ya está reservado.');
+                    return;
+                }
+
+                const confirmar = confirm(
+                    `¿Deseas reservar este horario?\n\n` +
+                    `Desde: ${info.event.startStr.slice(0,16).replace('T',' ')}\n` +
+                    `Hasta: ${info.event.endStr.slice(0,16).replace('T',' ')}`
+                );
+
+                if (!confirmar) return;
+
+                fetch(reservaUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({
+                        event_id: info.event.id,
+                        action: 'reserve'
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        info.event.setExtendedProp('is_reserved', true);
+                        info.event.setProp('title', 'Reservado');
+                        info.event.setProp('backgroundColor', '#dc3545');
+                        info.event.setProp('borderColor', '#dc3545');
+                        alert('Cita reservada con éxito ✨');
+                    } else {
+                        alert(data.error);
+                    }
+                });
+            },
+
+            eventDidMount: function(info) {
+                if (info.event.extendedProps.is_reserved) {
+                    info.el.style.backgroundColor = '#dc3545';
                 } else {
                     info.el.style.backgroundColor = '#28a745';
-                    info.el.style.cursor = 'pointer';
                 }
             }
         });
+
         calendar.render();
     });
-
-    function mostrarFormulario(event) {
-        document.getElementById('instrucciones-cliente').style.display = 'none';
-        document.getElementById('wrapper-reserva').style.display = 'block';
-        
-        document.getElementById('event-id').value = event.id;
-        document.getElementById('display-fecha').innerText = event.start.toLocaleString();
-    }
-
-    function cancelarSeleccion() {
-        document.getElementById('wrapper-reserva').style.display = 'none';
-        document.getElementById('instrucciones-cliente').style.display = 'block';
-    }
-
-    function agendarCita() {
-        const eventId = document.getElementById('event-id').value;
-        const nombre = document.getElementById('cliente-nombre').value;
-        const email = document.getElementById('cliente-email').value;
-
-        fetch(reservaUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken
-            },
-            body: JSON.stringify({
-                event_id: eventId,
-                nombre_cliente: nombre,
-                email_cliente: email,
-                action: 'book' // Enviamos una acción diferente para que tu vista sepa que es una reserva
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if(data.success) {
-                alert('¡Cita agendada correctamente!');
-                location.reload();
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
 </script>
-
-<style>
-/* Mantenemos tus estilos exactos */
-.card-minimal {
-    background: var(--bg-card);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
-}
-.text-gold { color: #FFD700; }
-.btn-gold { background-color: #FFD700; color: #000; border: none; font-weight: 600; }
-.btn-gold:hover { background-color: #e5c100; }
-.fc .fc-toolbar-title { color: var(--accent-gold); }
-</style>
-{% endblock %}+
+{% endblock %}
