@@ -11,14 +11,11 @@ urlpatterns = [
     # URLs de Disponibilidad del Calendario (NUEVAS RUTAS) 📅
     path('calendario-disponibilidad/', views.calendario_disponibilidad_view, name='calendario_disponibilidad'),
     path('disponibilidad-ajax/', views.manejar_disponibilidad_ajax, name='manejar_disponibilidad_ajax'),
-    path('calendario-todos/', views.calendario_disponibilidad_todos, name='calendario_todos'),
-
     # Las funciones 'calendario_disponibilidad_view' y 'manejar_disponibilidad_ajax' 
     # deben existir en tu archivo 'views.py'.
     
     path('toma-horas/', views.toma_de_horas, name='toma_de_horas'),
-    path('disponibilidad/', views.calendario_disponibilidad_view, name='gestion_disponibilidad'),
-    path('disponibilidad/ajax/', views.manejar_disponibilidad_ajax, name='manejar_disponibilidad_ajax'),
+
 
     # URLs de reportes
     path('reportes/', views.reportes_lista, name='reportes'),
