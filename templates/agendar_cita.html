@@ -6,7 +6,7 @@
     <div class="row mb-4">
         <div class="col-12 text-center">
             <h1 class="hero-title">📅 Gestión de Disponibilidad</h1>
-            <p class="text-muted">Visualización de horarios disponibles y reservados.</p>
+            <p class="text-muted">Visualización de horarios disponibles y reservados de todos los tarotistas.</p>
         </div>
     </div>
 
@@ -24,32 +24,11 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <script>
-    let calendar;
-    const disponibilidadUrl = "{% url 'core:manejar_disponibilidad_ajax' %}";
-
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
-    const csrftoken = getCookie('csrftoken');
-
     document.addEventListener('DOMContentLoaded', function () {
-
         const calendarEl = document.getElementById('calendar');
         const eventos = {{ horarios_eventos_json|safe }};
 
-        calendar = new FullCalendar.Calendar(calendarEl, {
+        const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'timeGridWeek',
             locale: 'es',
             allDaySlot: false,
@@ -63,43 +42,8 @@
 
             events: eventos,
 
-            eventClick: function (info) {
-                if (info.event.title === "Disponible" && !info.event.extendedProps.is_reserved) {
-                    const confirmar = confirm(
-                        `¿Deseas eliminar este horario disponible?\n` +
-                        `Desde: ${info.event.startStr.slice(0,16).replace('T',' ')}\n` +
-                        `Hasta: ${info.event.endStr.slice(0,16).replace('T',' ')}`
-                    );
-
-                    if (confirmar) {
-                        fetch(disponibilidadUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrftoken
-                            },
-                            body: JSON.stringify({
-                                event_id: info.event.id,
-                                action: 'delete'
-                            })
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.success) {
-                                info.event.remove();
-                                alert('Horario eliminado correctamente.');
-                            } else {
-                                alert('Error al eliminar horario: ' + data.error);
-                            }
-                        });
-                    }
-
-                } else if (info.event.extendedProps.is_reserved) {
-                    alert('Este horario está reservado y no puede eliminarse.');
-                }
-            },
-
             eventDidMount: function (info) {
+                // Colores según disponibilidad
                 if (info.event.extendedProps.is_reserved) {
                     info.el.style.backgroundColor = '#dc3545';
                     info.el.style.borderColor = '#dc3545';
@@ -107,6 +51,8 @@
                     info.el.style.backgroundColor = '#28a745';
                     info.el.style.borderColor = '#28a745';
                 }
+                // Mostrar nombre del tarotista en tooltip
+                info.el.title = info.event.title;
             }
         });
 
@@ -130,7 +76,7 @@
     border-radius: 8px;
     color: #fff;
     font-weight: 500;
-    cursor: pointer;
+    cursor: default;
     border: none !important;
     padding: 5px;
 }
@@ -142,5 +88,4 @@
     backdrop-filter: blur(10px);
 }
 </style>
-
 {% endblock %}
