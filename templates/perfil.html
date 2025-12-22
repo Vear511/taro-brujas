@@ -110,10 +110,11 @@
                             </a>
                         {% endif %}
 
-                        {# Mostrar link a Reportes para cualquier usuario autenticado #}
-                        <a href="{% url 'core:reportes' %}" class="btn-minimal me-2">
-                            📊 Mis Reportes
-                        </a>
+                        {% if user.es_tarotista %}
+                            <a href="{% url 'core:reportes' %}" class="btn-minimal me-2">
+                                📊 Mis Reportes
+                            </a>
+                        {% endif %}
 
                         {% if user.is_staff %}
                             <a href="/admin/" class="btn-gold">
