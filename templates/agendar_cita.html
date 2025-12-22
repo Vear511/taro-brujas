@@ -2,10 +2,11 @@
 
 {% block content %}
 <div class="container mt-5 pt-4">
+
     <div class="row mb-4">
         <div class="col-12 text-center">
             <h1 class="hero-title">📅 Gestión de Disponibilidad</h1>
-            <p class="text-muted">Visualiza los horarios disponibles y reservados.</p>
+            <p class="text-muted">Visualización de horarios disponibles y reservados.</p>
         </div>
     </div>
 
@@ -16,12 +17,14 @@
                 <p class="text-light display-6">{{ total_horarios|default:'0' }}</p>
             </div>
         </div>
+
         <div class="col-md-4 mb-3">
             <div class="card-minimal text-center p-3">
                 <h5 class="text-gold">Disponibles</h5>
                 <p class="text-light display-6">{{ horarios_disponibles|default:'0' }}</p>
             </div>
         </div>
+
         <div class="col-md-4 mb-3">
             <div class="card-minimal text-center p-3">
                 <h5 class="text-gold">Reservados</h5>
@@ -37,6 +40,7 @@
             </div>
         </div>
     </div>
+
 </div>
 
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
@@ -60,9 +64,11 @@
         }
         return cookieValue;
     }
+
     const csrftoken = getCookie('csrftoken');
 
     document.addEventListener('DOMContentLoaded', function () {
+
         const calendarEl = document.getElementById('calendar');
         const eventos = JSON.parse('{{ horarios_eventos_json|safe }}' || '[]');
 
@@ -71,15 +77,18 @@
             locale: 'es',
             allDaySlot: false,
             slotDuration: '00:30:00',
+
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
                 right: 'timeGridWeek,timeGridDay,listWeek'
             },
+
             events: eventos,
 
             eventClick: function (info) {
                 if (info.event.title === "Disponible" && !info.event.extendedProps.is_reserved) {
+
                     const confirmar = confirm(
                         `¿Deseas eliminar este horario disponible?\n` +
                         `Desde: ${info.event.startStr.slice(0,16).replace('T',' ')}\n` +
@@ -108,8 +117,9 @@
                             }
                         });
                     }
+
                 } else if (info.event.extendedProps.is_reserved) {
-                    alert('Este horario ya está reservado y no puede ser eliminado.');
+                    alert('Este horario está reservado y no puede eliminarse.');
                 }
             },
 
@@ -156,4 +166,5 @@
     backdrop-filter: blur(10px);
 }
 </style>
+
 {% endblock %}
