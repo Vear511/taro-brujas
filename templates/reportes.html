@@ -2,29 +2,53 @@
 
 {% block content %}
 <div class="container mt-5 pt-4">
-    <div class="row mb-4">
+    <div class="row mb-3">
         <div class="col-12 text-center">
             <h1 class="hero-title">📊 Reportes de Pacientes</h1>
             <p class="text-muted">Revisa los reportes recientes y el historial completo.</p>
-            <a href="{% url 'core:crear_reporte' %}" class="btn-gold py-2 px-4 mt-3">
-                ➕ Crear Nuevo Reporte
-            </a>
         </div>
     </div>
 
-    <!-- Cards con los 3 reportes abiertos más recientes -->
+    <!-- FILTROS: buscador + orden -->
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-center">
+            <form method="get" class="d-flex align-items-center gap-2" style="width:100%; max-width:900px;">
+                <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nombre, usuario o palabra..." class="form-control bg-dark text-light border-minimal" />
+                <button type="submit" class="btn-minimal py-2 px-3">🔎 Buscar</button>
+
+                {# Flechas de orden. Mantienen la búsqueda si existe #}
+                <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}order=asc" class="btn-minimal py-2 px-3" title="Ordenar: más antiguo primero" style="{% if order == 'asc' %}outline: 2px solid var(--accent-gold);{% endif %}">▲</a>
+                <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}order=desc" class="btn-minimal py-2 px-3" title="Ordenar: más reciente primero" style="{% if order == 'desc' %}outline: 2px solid var(--accent-gold);{% endif %}">▼</a>
+            </form>
+        </div>
+    </div>
+
+    {# Mensaje cuando la búsqueda no arroja resultados #}
+    {% if search_no_results %}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-info card-minimal">
+                No se han encontrado resultados para la búsqueda "<strong>{{ q }}</strong>".
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Cards con los 3 reportes más relevantes según filtros/orden -->
     <div class="row mb-5">
         {% for reporte in reportes_recientes %}
         <div class="col-md-4 mb-3">
             <div class="card-minimal h-100 p-3">
                 <h5 class="text-gold">{{ reporte.paciente.get_full_name|default:reporte.paciente.username }}</h5>
-                <p class="text-muted mb-1">📅 {{ reporte.fecha|date:"d M Y" }}</p>
-                <p class="text-light small">{{ reporte.comentario|truncatechars:80 }}</p>
+                <p class="text-muted mb-1">📅 {{ reporte.fecha_reporte|date:"d M Y" }}</p>
+                <p class="text-light small">{{ reporte.experiencia|truncatechars:80 }}</p>
                 <span class="badge-minimal {% if reporte.estado == 'abierto' %}active{% else %}inactive{% endif %}">
-                    {{ reporte.estado|capfirst }}
+                    {{ reporte.get_estado_display }}
                 </span>
             </div>
         </div>
+        {% empty %}
+        <!-- Si no hay reportes en reportes_recientes no mostramos tarjetas, pero no es un error -->
         {% endfor %}
     </div>
 
@@ -49,24 +73,27 @@
                         <td>{{ reporte.actualizado_en|date:"d M Y H:i" }}</td>
                         <td>
                             <span class="badge-minimal {% if reporte.estado == 'abierto' %}active{% else %}inactive{% endif %}">
-                                {{ reporte.estado|capfirst }}
+                                {{ reporte.get_estado_display }}
                             </span>
                         </td>
                         <td>
-                            <a href="{% url 'core:detalle_reporte' reporte.id %}" class="btn-minimal-sm me-1" title="Ver Detalle">
-                                👁️
-                            </a>
-                            <a href="{% url 'core:editar_reporte' reporte.id %}" class="btn-minimal-sm me-1" title="Editar">
-                                ✏️
-                            </a>
-                            <a href="{% url 'core:eliminar_reporte' reporte.id %}" class="btn-minimal-sm" title="Eliminar" style="color: #dc3545;">
-                                🗑️
-                            </a>
+                            <a href="{% url 'core:detalle_reporte' reporte.id %}" class="btn-minimal-sm me-1" title="Ver Detalle">👁️</a>
+
+                            {% if user.es_tarotista and reporte.tarotista.usuario == user %}
+                                <a href="{% url 'core:editar_reporte' reporte.id %}" class="btn-minimal-sm me-1" title="Editar">✏️</a>
+                                <a href="{% url 'core:eliminar_reporte' reporte.id %}" class="btn-minimal-sm" title="Eliminar" style="color: #dc3545;">🗑️</a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center text-muted">No hay reportes registrados.</td>
+                        <td colspan="5" class="text-center text-muted">
+                            {% if q %}
+                                No hay reportes que coincidan con la búsqueda.
+                            {% else %}
+                                No hay reportes registrados.
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
