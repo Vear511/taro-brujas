@@ -1,64 +1,101 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Agendar Cita</title>
+{% extends 'base.html' %}
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% block content %}
+<div class="container mt-5 pt-4">
 
-    <!-- Estilos -->
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-</head>
-<body>
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h1 class="hero-title">🔮 Agendar Cita</h1>
+            <p class="text-muted">
+                Selecciona un tarotista y elige la fecha y hora de tu consulta.
+            </p>
+        </div>
+    </div>
 
-    <main class="container">
-        <h2>Agendar Cita</h2>
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
 
-        <form method="post" class="form-cita">
-            {% csrf_token %}
+            <div class="card-minimal p-4">
+                <h4 class="text-gold mb-3">📅 Formulario de Reserva</h4>
 
-            <div class="form-group">
-                <label for="tarotista">Tarotista</label>
-                <select name="tarotista" id="tarotista" required>
-                    <option value="">Seleccione un tarotista</option>
-                    {% for tarotista in tarotistas %}
-                        <option value="{{ tarotista.id }}">
-                            {{ tarotista.nombre }}
-                        </option>
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="tarotista" class="form-label text-light">
+                            Tarotista
+                        </label>
+                        <select
+                            name="tarotista"
+                            id="tarotista"
+                            class="form-control"
+                            required
+                        >
+                            <option value="">Seleccione un tarotista</option>
+                            {% for tarotista in tarotistas %}
+                                <option value="{{ tarotista.id }}">
+                                    {{ tarotista.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="fecha" class="form-label text-light">
+                            Fecha
+                        </label>
+                        <input
+                            type="date"
+                            id="fecha"
+                            name="fecha"
+                            class="form-control"
+                            required
+                        >
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="hora" class="form-label text-light">
+                            Hora
+                        </label>
+                        <input
+                            type="time"
+                            id="hora"
+                            name="hora"
+                            class="form-control"
+                            required
+                        >
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="mensaje" class="form-label text-light">
+                            Mensaje (opcional)
+                        </label>
+                        <textarea
+                            id="mensaje"
+                            name="mensaje"
+                            rows="4"
+                            class="form-control"
+                        ></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-gold w-100">
+                        Agendar Cita
+                    </button>
+                </form>
+            </div>
+
+            {% if messages %}
+                <div class="mt-4">
+                    {% for message in messages %}
+                        <div class="alert alert-info text-center">
+                            {{ message }}
+                        </div>
                     {% endfor %}
-                </select>
-            </div>
+                </div>
+            {% endif %}
 
-            <div class="form-group">
-                <label for="fecha">Fecha</label>
-                <input type="date" id="fecha" name="fecha" required>
-            </div>
+        </div>
+    </div>
 
-            <div class="form-group">
-                <label for="hora">Hora</label>
-                <input type="time" id="hora" name="hora" required>
-            </div>
-
-            <div class="form-group">
-                <label for="mensaje">Mensaje (opcional)</label>
-                <textarea id="mensaje" name="mensaje" rows="4"></textarea>
-            </div>
-
-            <button type="submit" class="btn-primary">
-                Agendar Cita
-            </button>
-        </form>
-
-        {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                    <li>{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    </main>
-
-</body>
-</html>
-
+</div>
+{% endblock %}
