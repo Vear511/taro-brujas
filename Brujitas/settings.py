@@ -107,9 +107,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # -------------------------
 
 LANGUAGE_CODE = 'es-es'
-TIME_ZONE = 'UTC'
-USE_I18N = True
+TIME_ZONE = 'America/Santiago'
 USE_TZ = True
+USE_I18N = True
+
 
 # -------------------------
 # ARCHIVOS ESTÁTICOS (STATICFILES)
