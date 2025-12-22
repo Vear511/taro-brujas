@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
+from django.core.serializers.json import DjangoJSONEncoder
 
 # Modelos
 from .models import Reporte, Disponibilidad
@@ -30,7 +31,6 @@ def sobre_nosotras(request):
 
 @login_required
 def reportes_lista(request):
-    """Lista de reportes según usuario y búsqueda"""
     q = request.GET.get('q', '').strip()
     order = request.GET.get('order', 'desc')
 
@@ -54,20 +54,20 @@ def reportes_lista(request):
             reportes = Reporte.objects.none()
 
     reportes = reportes.order_by('fecha_reporte' if order == 'asc' else '-fecha_reporte')
+    search_no_results = bool(q) and (not reportes.exists())
 
     context = {
         'reportes': reportes,
         'reportes_recientes': list(reportes[:3]),
         'q': q,
         'order': order,
-        'search_no_results': bool(q) and (not reportes.exists()),
+        'search_no_results': search_no_results,
     }
     return render(request, 'reportes.html', context)
 
 
 @login_required
 def crear_reporte(request):
-    """Crear un nuevo reporte"""
     if not hasattr(request.user, 'tarotista'):
         messages.error(request, 'Solo los tarotistas pueden crear reportes.')
         return redirect('perfil')
@@ -105,29 +105,26 @@ def crear_reporte(request):
 
     citas = Cita.objects.filter(tarotista=tarotista, estado='completada')
     pacientes = Usuario.objects.all()
+
     return render(request, 'crear_reporte.html', {'citas': citas, 'pacientes': pacientes})
 
 
 @login_required
 def detalle_reporte(request, reporte_id):
-    """Detalle de un reporte"""
     reporte = get_object_or_404(Reporte, id=reporte_id)
 
-    if hasattr(request.user, 'tarotista'):
-        if reporte.tarotista.usuario != request.user:
-            messages.error(request, 'No tienes permiso para ver este reporte.')
-            return redirect('core:reportes')
-    else:
-        if reporte.paciente != request.user:
-            messages.error(request, 'No tienes permiso para ver este reporte.')
-            return redirect('core:reportes')
+    if hasattr(request.user, 'tarotista') and reporte.tarotista.usuario != request.user:
+        messages.error(request, 'No tienes permiso para ver este reporte.')
+        return redirect('core:reportes')
+    elif not hasattr(request.user, 'tarotista') and reporte.paciente != request.user:
+        messages.error(request, 'No tienes permiso para ver este reporte.')
+        return redirect('core:reportes')
 
     return render(request, 'detalle_reporte.html', {'reporte': reporte})
 
 
 @login_required
 def editar_reporte(request, reporte_id):
-    """Editar un reporte"""
     reporte = get_object_or_404(Reporte, id=reporte_id)
 
     if reporte.tarotista.usuario != request.user:
@@ -135,20 +132,22 @@ def editar_reporte(request, reporte_id):
         return redirect('core:reportes')
 
     if request.method == 'POST':
-        reporte.experiencia = request.POST.get('experiencia', reporte.experiencia)
-        estado = request.POST.get('estado', reporte.estado)
-        if estado in ['abierto', 'cerrado']:
-            reporte.estado = estado
-        reporte.save()
-        messages.success(request, 'Reporte actualizado exitosamente.')
-        return redirect('core:detalle_reporte', reporte_id=reporte.id)
+        try:
+            reporte.experiencia = request.POST.get('experiencia', reporte.experiencia)
+            estado = request.POST.get('estado', reporte.estado)
+            if estado in ['abierto', 'cerrado']:
+                reporte.estado = estado
+            reporte.save()
+            messages.success(request, 'Reporte actualizado exitosamente.')
+            return redirect('core:detalle_reporte', reporte_id=reporte.id)
+        except Exception as e:
+            messages.error(request, f'Error al actualizar el reporte: {str(e)}')
 
     return render(request, 'editar_reporte.html', {'reporte': reporte})
 
 
 @login_required
 def eliminar_reporte(request, reporte_id):
-    """Eliminar un reporte"""
     reporte = get_object_or_404(Reporte, id=reporte_id)
 
     if reporte.tarotista.usuario != request.user:
@@ -175,13 +174,12 @@ def calendario_disponibilidad_view(request):
     tarotista = request.user.tarotista
     horarios = Disponibilidad.objects.filter(tarotista=tarotista)
 
-    # Calculamos fecha del lunes de la semana actual
+    # Fecha del lunes de la semana actual
     hoy = date.today()
     lunes_semana = hoy - timedelta(days=hoy.weekday())
 
     eventos_fc = []
     for h in horarios:
-        # Combina lunes + dia_semana + hora_inicio/fin para FullCalendar
         fecha_evento = lunes_semana + timedelta(days=h.dia_semana)
         start_dt = make_aware(datetime.combine(fecha_evento, h.hora_inicio))
         end_dt = make_aware(datetime.combine(fecha_evento, h.hora_fin))
@@ -189,16 +187,19 @@ def calendario_disponibilidad_view(request):
         eventos_fc.append({
             'id': h.pk,
             'title': 'Reservado' if h.reservado else 'Disponible',
-            'start': start_dt.isoformat(),
-            'end': end_dt.isoformat(),
+            'start': start_dt,
+            'end': end_dt,
             'extendedProps': {'is_reserved': h.reservado},
         })
+
+    # Serialización correcta con DjangoJSONEncoder
+    horarios_eventos_json = json.dumps(eventos_fc, cls=DjangoJSONEncoder)
 
     context = {
         'total_horarios': horarios.count(),
         'horarios_disponibles': horarios.filter(reservado=False).count(),
         'horarios_reservados': horarios.filter(reservado=True).count(),
-        'horarios_eventos_json': json.dumps(eventos_fc),
+        'horarios_eventos_json': horarios_eventos_json,
     }
     return render(request, 'calendario.html', context)
 
@@ -231,5 +232,4 @@ def manejar_disponibilidad_ajax(request):
 
 
 def toma_de_horas(request):
-    """Vista genérica para tomar horas (puede adaptarse a la app de clientes)"""
     return render(request, 'toma_de_horas.html')
