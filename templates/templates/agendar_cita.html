@@ -29,30 +29,6 @@
             </div>
         </div>
     </div>
-    
-    <div class="row">
-        <div class="col-lg-4 mb-4">
-            <div class="card-minimal p-4">
-                <h4 class="text-gold mb-3">➕ Agregar Nuevo Bloque</h4>
-                
-                <form id="form-disponibilidad" onsubmit="event.preventDefault(); agregarDisponibilidad();">
-                    {% csrf_token %} 
-                    
-                    <div class="mb-3">
-                        <label for="start-time" class="form-label text-light">Inicio (Día y Hora):</label>
-                        <input type="datetime-local" class="form-control" id="start-time" name="start_time" required step="60"> 
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="end-time" class="form-label text-light">Fin (Día y Hora):</label>
-                        <input type="datetime-local" class="form-control" id="end-time" name="end_time" required step="60">
-                    </div>
-                    
-                    <button type="submit" class="btn btn-gold w-100">Marcar Disponibilidad</button>
-                    <small class="text-muted mt-2 d-block">Incluye minutos (Ej: 13:22)</small>
-                </form>
-            </div>
-        </div>
 
         <div class="col-lg-8 mb-4">
             <div class="card-minimal p-4">
