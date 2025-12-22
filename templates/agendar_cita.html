@@ -3,109 +3,170 @@
 {% block content %}
 <div class="container mt-5 pt-4">
 
+    <!-- HEADER -->
     <div class="row mb-4">
         <div class="col-12 text-center">
-            <h1 class="hero-title">🔮 Agendar Cita</h1>
+            <h1 class="hero-title">📅 Agendar Cita</h1>
             <p class="text-muted">
-                Selecciona un tarotista y elige la fecha y hora de tu consulta.
+                Selecciona un horario disponible en el calendario para reservar tu consulta.
             </p>
         </div>
     </div>
 
-    <div class="row justify-content-center">
-        <div class="col-lg-6 col-md-8">
-
-            <div class="card-minimal p-4">
-                <h4 class="text-gold mb-3">📅 Formulario de Reserva</h4>
-
-                <form method="post">
-                    {% csrf_token %}
-
-                    <!-- TAROTISTA -->
-                    <div class="mb-3">
-                        <label for="tarotista" class="form-label text-light">
-                            Tarotista
-                        </label>
-                        <select
-                            name="tarotista"
-                            id="tarotista"
-                            class="form-control"
-                            required
-                        >
-                            <option value="">Seleccione un tarotista</option>
-
-                            {% for tarotista in tarotistas %}
-                                <option value="{{ tarotista.id }}">
-                                    {{ tarotista.usuario.get_full_name }}
-                                </option>
-                            {% empty %}
-                                <option disabled>
-                                    No hay tarotistas disponibles
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- FECHA -->
-                    <div class="mb-3">
-                        <label for="fecha" class="form-label text-light">
-                            Fecha
-                        </label>
-                        <input
-                            type="date"
-                            id="fecha"
-                            name="fecha"
-                            class="form-control"
-                            required
-                        >
-                    </div>
-
-                    <!-- HORA -->
-                    <div class="mb-3">
-                        <label for="hora" class="form-label text-light">
-                            Hora
-                        </label>
-                        <input
-                            type="time"
-                            id="hora"
-                            name="hora"
-                            class="form-control"
-                            required
-                        >
-                    </div>
-
-                    <!-- MENSAJE -->
-                    <div class="mb-4">
-                        <label for="mensaje" class="form-label text-light">
-                            Mensaje (opcional)
-                        </label>
-                        <textarea
-                            id="mensaje"
-                            name="mensaje"
-                            rows="4"
-                            class="form-control"
-                        ></textarea>
-                    </div>
-
-                    <button type="submit" class="btn btn-gold w-100">
-                        Agendar Cita
-                    </button>
-                </form>
+    <!-- MÉTRICAS -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Horarios Disponibles</h5>
+                <p class="text-light display-6">{{ horarios_disponibles|default:'0' }}</p>
             </div>
-
-            {% if messages %}
-                <div class="mt-4">
-                    {% for message in messages %}
-                        <div class="alert alert-info text-center">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Tarotista</h5>
+                <p class="text-light">
+                    {{ tarotista.usuario.get_full_name }}
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Precio</h5>
+                <p class="text-light">
+                    ${{ tarotista.precio_por_sesion }}
+                </p>
+            </div>
         </div>
     </div>
 
-</div>
-{% endblock %}
+    <!-- CONTENIDO -->
+    <div class="row">
 
+        <!-- FORMULARIO CONFIRMACIÓN -->
+        <div class="col-lg-4 mb-4">
+            <div class="card-minimal p-4">
+                <h4 class="text-gold mb-3">📝 Confirmar Cita</h4>
+
+                <form id="form-cita">
+                    {% csrf_token %}
+
+                    <input type="hidden" id="horario-id" name="horario_id">
+
+                    <div class="mb-3">
+                        <label class="form-label text-light">Fecha</label>
+                        <input type="text" id="fecha" class="form-control" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-light">Hora</label>
+                        <input type="text" id="hora" class="form-control" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-light">Mensaje (opcional)</label>
+                        <textarea name="mensaje" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-gold w-100" disabled>
+                        Confirmar Reserva
+                    </button>
+                </form>
+
+                <small class="text-muted d-block mt-2">
+                    Selecciona un horario disponible en el calendario
+                </small>
+            </div>
+        </div>
+
+        <!-- CALENDARIO -->
+        <div class="col-lg-8 mb-4">
+            <div class="card-minimal p-4">
+                <div id="calendar"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<script>
+let calendar;
+const reservarUrl = "{% url 'citas:reservar_cita_ajax' %}";
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie) {
+        document.cookie.split(';').forEach(cookie => {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.slice(name.length + 1));
+            }
+        });
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('calendar');
+    const eventos = JSON.parse('{{ horarios_eventos_json|safe }}' || '[]');
+
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        locale: 'es',
+        allDaySlot: false,
+        events: eventos,
+
+        eventClick: function (info) {
+            if (!info.event.extendedProps.is_reserved) {
+                document.getElementById('horario-id').value = info.event.id;
+                document.getElementById('fecha').value = info.event.startStr.slice(0, 10);
+                document.getElementById('hora').value =
+                    info.event.startStr.slice(11, 16) + ' - ' +
+                    info.event.endStr.slice(11, 16);
+
+                document.querySelector('#form-cita button').disabled = false;
+            } else {
+                alert('Este horario ya está reservado.');
+            }
+        },
+
+        eventDidMount: function (info) {
+            info.el.style.backgroundColor = info.event.extendedProps.is_reserved
+                ? '#dc3545'
+                : '#28a745';
+        }
+    });
+
+    calendar.render();
+});
+
+// CONFIRMAR RESERVA
+document.getElementById('form-cita').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    fetch(reservarUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({
+            horario_id: document.getElementById('horario-id').value,
+            mensaje: this.mensaje.value
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert('Cita agendada correctamente.');
+            location.reload();
+        } else {
+            alert(data.error);
+        }
+    });
+});
+</script>
+{% endblock %}
