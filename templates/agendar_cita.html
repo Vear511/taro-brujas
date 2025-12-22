@@ -1,112 +1,62 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <h2 class="hero-title">✨ Agendar Cita de Tarot</h2>
-            <p class="text-muted">
-                Selecciona un horario disponible en el calendario para reservar tu cita.
-            </p>
-        </div>
+<h2>Agendar Cita</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div>
+        <label for="tarotista">Tarotista</label>
+        <select name="tarotista" id="tarotista" required>
+            <option value="">Seleccione un tarotista</option>
+            {% for tarotista in tarotistas %}
+                <option value="{{ tarotista.id }}">
+                    {{ tarotista.nombre }}
+                </option>
+            {% endfor %}
+        </select>
     </div>
 
-    <div class="row">
-        <div class="col-lg-10 mx-auto">
-            <div class="card-minimal p-4">
-                <div id="calendar"></div>
-            </div>
-        </div>
+    <div>
+        <label for="fecha">Fecha</label>
+        <input
+            type="date"
+            id="fecha"
+            name="fecha"
+            required
+        >
     </div>
-</div>
 
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <div>
+        <label for="hora">Hora</label>
+        <input
+            type="time"
+            id="hora"
+            name="hora"
+            required
+        >
+    </div>
 
-<script>
-    const reservaUrl = "{% url 'core:manejar_reserva_ajax' %}";
-    let calendar;
+    <div>
+        <label for="mensaje">Mensaje (opcional)</label>
+        <textarea
+            id="mensaje"
+            name="mensaje"
+            rows="4"
+        ></textarea>
+    </div>
 
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            document.cookie.split(';').forEach(cookie => {
-                cookie = cookie.trim();
-                if (cookie.startsWith(name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                }
-            });
-        }
-        return cookieValue;
-    }
+    <button type="submit">Agendar Cita</button>
+</form>
 
-    const csrftoken = getCookie('csrftoken');
+{% if messages %}
+    <ul>
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const calendarEl = document.getElementById('calendar');
-        const eventos = JSON.parse('{{ horarios_eventos_json|safe }}' || '[]');
-
-        calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'timeGridWeek',
-            locale: 'es',
-            allDaySlot: false,
-            slotDuration: '00:30:00',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'timeGridWeek,timeGridDay'
-            },
-            events: eventos,
-
-            eventClick: function(info) {
-                if (info.event.extendedProps.is_reserved) {
-                    alert('Este horario ya está reservado.');
-                    return;
-                }
-
-                const confirmar = confirm(
-                    `¿Deseas reservar este horario?\n\n` +
-                    `Desde: ${info.event.startStr.slice(0,16).replace('T',' ')}\n` +
-                    `Hasta: ${info.event.endStr.slice(0,16).replace('T',' ')}`
-                );
-
-                if (!confirmar) return;
-
-                fetch(reservaUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken
-                    },
-                    body: JSON.stringify({
-                        event_id: info.event.id,
-                        action: 'reserve'
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        info.event.setExtendedProp('is_reserved', true);
-                        info.event.setProp('title', 'Reservado');
-                        info.event.setProp('backgroundColor', '#dc3545');
-                        info.event.setProp('borderColor', '#dc3545');
-                        alert('Cita reservada con éxito ✨');
-                    } else {
-                        alert(data.error);
-                    }
-                });
-            },
-
-            eventDidMount: function(info) {
-                if (info.event.extendedProps.is_reserved) {
-                    info.el.style.backgroundColor = '#dc3545';
-                } else {
-                    info.el.style.backgroundColor = '#28a745';
-                }
-            }
-        });
-
-        calendar.render();
-    });
-</script>
 {% endblock %}
+
