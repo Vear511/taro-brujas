@@ -4,7 +4,7 @@ from tarotistas.models import Tarotista
 
 class CitaForm(forms.Form):
     tarotista = forms.ModelChoiceField(
-        queryset=Tarotista.objects.filter(disponible=True),
+        queryset=Tarotista.objects.filter(disponible=False),
         empty_label="Selecciona un tarotista"
     )
     fecha = forms.DateField(widget=forms.SelectDateWidget)
