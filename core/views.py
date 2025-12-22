@@ -1,30 +1,20 @@
 from datetime import datetime
-import json
+import json 
 
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, Http404
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt 
 
 # Importaciones de Modelos
-# NOTA: Los modelos Reporte y Disponibilidad se asumen locales a esta aplicación,
-# o se configuran en el settings.py para ser resueltos correctamente.
-from .models import Reporte, Disponibilidad
+from .models import Reporte, Disponibilidad 
+from django.db.models import Q
 from citas.models import Cita
 from usuarios.models import Usuario
-
-# *** IMPORTACIÓN ADICIONAL NECESARIA ***
-# Se asume que el modelo Tarotista reside en la aplicación 'tarotistas'
-try:
-    from .models import Tarotista # Cambio: asumo que Tarotista está en el mismo .models
-except ImportError:
-    # Manejo de error si la app 'tarotistas' no existe o no tiene el modelo
-    class Tarotista: # Define un placeholder si no existe
-        pass
-# **************************************
-
+# Asumimos que también tienes el modelo Tarotista disponible para request.user.tarotista
 
 # ==================== VISTAS BÁSICAS ====================
 
@@ -35,80 +25,63 @@ def servicios(request):
     return render(request, 'servicios.html')
 
 def sobre_nosotras(request):
-    """
-    Vista que recupera los datos combinados (Usuario + Tarotista) para
-    la sección pública 'Conoce a nuestras tarotistas', garantizando valores de respaldo.
-
-    Utiliza select_related('usuario') para realizar el INNER JOIN entre Tarotista y Usuario.
-    """
-    
-    # Suponiendo que el modelo Tarotista ya está correctamente importado arriba.
-    if 'Tarotista' in globals() and isinstance(Tarotista, type):
-        
-        # Consulta para traer todos los registros de diagnóstico
-        tarotistas_data = Tarotista.objects.select_related('usuario').all()
-        
-        tarotistas_listos = []
-        
-        for t in tarotistas_data:
-            try:
-                # ----------------------------------------------------
-                # GARANTIZAR VALORES DE RESPALDO (FALLBACK)
-                # ----------------------------------------------------
-                
-                # 1. Nombre de Respaldo: Prioriza first_name, luego username, luego un valor por defecto.
-                nombre_a_mostrar = t.usuario.first_name or t.usuario.username or "Tarotista (Nombre Pendiente)"
-                
-                # 2. Descripción de Respaldo: Usa la descripción o un mensaje por defecto.
-                descripcion_a_mostrar = t.descripcion or "Esta tarotista aún no ha completado su biografía, pero está lista para leer tus cartas."
-                
-                # 3. Imagen de Respaldo: Ya implementado. Usa la imagen del avatar o una por defecto.
-                url_imagen_a_mostrar = t.usuario.avatar.url if t.usuario.avatar else '/static/img/placeholder_default.png'
-                
-                # ----------------------------------------------------
-                
-                tarotistas_listos.append({
-                    'nombre': nombre_a_mostrar, 
-                    'descripcion': descripcion_a_mostrar, 
-                    'url_imagen': url_imagen_a_mostrar, 
-                })
-            
-            except AttributeError:
-                # Este bloque se mantiene para saltar registros si el usuario_id está roto
-                print(f"ERROR DE BD: El registro de Tarotista (ID: {getattr(t, 'id', 'N/A')}) no tiene un usuario válido asociado.")
-                continue
-            
-        context = {
-            'tarotistas': tarotistas_listos
-        }
-    
-    else:
-        # Si el modelo Tarotista no se pudo importar (lo que indica un error de arquitectura),
-        # se pasa una lista vacía para evitar fallos.
-        context = {
-            'tarotistas': [] 
-        }
-
-    return render(request, 'sobre_nosotras.html', context)
-
-# --- VISTAS DE REPORTES ---
+    return render(request, 'sobre_nosotras.html')
 
 @login_required
 def reportes_lista(request):
-    """Lista de reportes - solo los de la tarotista autenticada"""
-    if not hasattr(request.user, 'tarotista'):
-        messages.error(request, 'Solo los tarotistas pueden acceder a esta sección.')
-        return redirect('perfil')
-    
-    tarotista = request.user.tarotista
-    reportes = Reporte.objects.filter(tarotista=tarotista)
-    
+    """
+    Lista de reportes con búsqueda y orden:
+    - Tarotistas: muestran sus reportes.
+    - Usuarios normales: muestran solo sus reportes.
+    - Parámetros GET:
+        - q: texto de búsqueda (username, first_name, last_name, experiencia)
+        - order: 'asc' o 'desc' (por fecha_reporte). Default 'desc'.
+    """
+
+    q = request.GET.get('q', '').strip()
+    order = request.GET.get('order', 'desc')
+
+    # Base queryset según tipo de usuario
+    if hasattr(request.user, 'tarotista'):
+        tarotista = request.user.tarotista
+        reportes = Reporte.objects.filter(tarotista=tarotista)
+    else:
+        reportes = Reporte.objects.filter(paciente=request.user)
+
+    # Aplicar búsqueda
+    try:
+        if q:
+            reportes = reportes.filter(
+                Q(paciente__username__icontains=q) |
+                Q(paciente__first_name__icontains=q) |
+                Q(paciente__last_name__icontains=q) |
+                Q(experiencia__icontains=q)
+            )
+    except Exception as e:
+        # Mostrar mensaje al usuario
+        messages.error(request, 'Ocurrió un error al realizar la búsqueda. Intenta con otro término.')
+        # Mostrar error real en consola para depuración
+        print("Error en búsqueda:", e)
+        # Evitar romper la vista
+        reportes = Reporte.objects.none()
+
+    # Ordenamiento
+    if order == 'asc':
+        reportes = reportes.order_by('fecha_reporte')
+    else:
+        reportes = reportes.order_by('-fecha_reporte')
+
+    # Detectar búsqueda sin resultados
+    search_no_results = bool(q) and (not reportes.exists())
+
     context = {
         'reportes': reportes,
-        'reportes_recientes': reportes[:3],
+        'reportes_recientes': list(reportes[:3]),
+        'q': q,
+        'order': order,
+        'search_no_results': search_no_results,
     }
     return render(request, 'reportes.html', context)
-
 
 @login_required
 def crear_reporte(request):
@@ -169,9 +142,16 @@ def detalle_reporte(request, reporte_id):
     """Ver detalles de un reporte"""
     reporte = get_object_or_404(Reporte, id=reporte_id)
     
-    if reporte.tarotista.usuario != request.user:
-        messages.error(request, 'No tienes permiso para ver este reporte.')
-        return redirect('core:reportes')
+    # Si es tarotista, mantener la validación actual: solo la tarotista que creó el reporte puede verlo
+    if hasattr(request.user, 'tarotista'):
+        if reporte.tarotista.usuario != request.user:
+            messages.error(request, 'No tienes permiso para ver este reporte.')
+            return redirect('core:reportes')
+    else:
+        # Usuario normal: solo el paciente asociado puede ver su reporte
+        if reporte.paciente != request.user:
+            messages.error(request, 'No tienes permiso para ver este reporte.')
+            return redirect('core:reportes')
     
     context = {
         'reporte': reporte,
@@ -245,6 +225,8 @@ def calendario_disponibilidad_view(request):
         eventos_fc.append({
             'id': horario.pk, 
             'title': 'Reservado' if horario.reservado else 'Disponible',
+            # Las fechas de inicio y fin son de tipo TimeField en models.py, 
+            # pero la vista las recupera del objeto datetime completo
             # Usar .isoformat() para incluirlas en el JSON
             'start': horario.hora_inicio.isoformat(), 
             'end': horario.hora_fin.isoformat(),
@@ -272,7 +254,7 @@ def calendario_disponibilidad_view(request):
 def manejar_disponibilidad_ajax(request):
     """Maneja las peticiones AJAX para añadir o eliminar disponibilidad."""
     if not hasattr(request.user, 'tarotista'):
-          return JsonResponse({'success': False, 'error': 'Permiso denegado.'}, status=403)
+        return JsonResponse({'success': False, 'error': 'Permiso denegado.'}, status=403)
           
     try:
         data = json.loads(request.body)
@@ -285,41 +267,42 @@ def manejar_disponibilidad_ajax(request):
             end_time_str = data.get('end_time')
             dia_semana_val = data.get('dia_semana') 
 
-            # 1. Validar que dia_semana_val no sea None (evita el error NOT NULL)
+            # Validar que dia_semana_val no sea None
             if dia_semana_val is None:
                 return JsonResponse({'success': False, 'error': 'Falta el valor de dia_semana en la petición AJAX.'}, status=400)
             
-            # 2. Convertir y validar que el valor es un entero (ROBUSTEZ)
+            # Convertir a entero
             try:
-                # Usamos int() para garantizar que el valor sea un entero
                 dia_semana_final = int(dia_semana_val) 
             except (TypeError, ValueError):
                 return JsonResponse({'success': False, 'error': 'El dia_semana debe ser un número entero (0-6).'}, status=400)
             
-            # Convertir las cadenas de tiempo (YYYY-MM-DDTHH:MM) a objetos datetime
-            start_dt = datetime.fromisoformat(start_time_str)
-            end_dt = datetime.fromisoformat(end_time_str)
-            
-            # Validación simple de solapamiento
-            if Disponibilidad.objects.filter(
-                tarotista=tarotista_obj, 
-                hora_inicio__lt=end_dt, 
+            # Convertir las cadenas de tiempo a objetos datetime (sin segundos/microsegundos)
+            start_dt = datetime.fromisoformat(start_time_str).replace(second=0, microsecond=0)
+            end_dt = datetime.fromisoformat(end_time_str).replace(second=0, microsecond=0)
+
+            # Validación de solapamiento SOLO dentro del mismo día de semana
+            solapados = Disponibilidad.objects.filter(
+                tarotista=tarotista_obj,
+                dia_semana=dia_semana_final,
+                hora_inicio__lt=end_dt,
                 hora_fin__gt=start_dt
-            ).exists():
+            )
+
+            if solapados.exists():
                 return JsonResponse({'success': False, 'error': 'El horario se solapa con uno existente.'}, status=409)
 
             # Crear el nuevo objeto de disponibilidad
             nueva_disponibilidad = Disponibilidad.objects.create(
                 tarotista=tarotista_obj,
-                dia_semana=dia_semana_final, # <-- USAMOS EL VALOR CONVERTIDO Y SEGURO
-                hora_inicio=start_dt,
-                hora_fin=end_dt,
+                dia_semana=dia_semana_final,
+                hora_inicio=start_dt.time(),  # si tu modelo usa TimeField
+                hora_fin=end_dt.time(),
                 reservado=False
             )
             return JsonResponse({'success': True, 'message': 'Horario añadido', 'event_id': nueva_disponibilidad.pk})
 
         elif action == 'delete':
-            # Lógica para eliminar un horario existente
             event_id = data.get('event_id')
             horario = Disponibilidad.objects.get(pk=event_id, tarotista=tarotista_obj, reservado=False)
             horario.delete()
@@ -331,5 +314,9 @@ def manejar_disponibilidad_ajax(request):
     except Disponibilidad.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Horario no encontrado o ya reservado.'}, status=404)
     except Exception as e:
-        # Esto atrapará errores como el formato ISO incorrecto de la fecha o JSON inválido
         return JsonResponse({'success': False, 'error': f'Error interno en el servidor: {str(e)}'}, status=500)
+    
+def toma_de_horas(request):
+    # Aquí puedes pasar datos al template si lo necesitas
+    return render(request, 'toma_de_horas.html')
+
