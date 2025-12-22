@@ -5,10 +5,11 @@
     <div class="row mb-4">
         <div class="col-12 text-center">
             <h1 class="hero-title">📅 Gestión de Disponibilidad</h1>
-            <p class="text-muted">Visualiza los horarios y usa el formulario para agregar nuevos bloques.</p>
+            <p class="text-muted">Visualiza los horarios y haz click para reservar un servicio de tarot.</p>
         </div>
     </div>
 
+    <div class="row">
         <div class="col-lg-8 mb-4">
             <div class="card-minimal p-4">
                 <div id="calendar"></div>
@@ -21,161 +22,97 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <script>
-    let calendar; 
-    const disponibilidadUrl = "{% url 'core:manejar_disponibilidad_ajax' %}"; 
+// ----------------------------
+// FUNCIONES DE SIMULACIÓN
+// ----------------------------
+function generarHorariosFalsos() {
+    const eventosFalsos = [];
+    const hoy = new Date();
+    const dia = hoy.toISOString().split('T')[0]; // "YYYY-MM-DD"
+    
+    let horaInicio = 9;
+    while (horaInicio < 17) {
+        const startHour = Math.floor(horaInicio);
+        const startMinutes = (horaInicio % 1) === 0 ? '00' : '30';
+        const endHour = Math.floor(horaInicio + 0.5);
+        const endMinutes = ((horaInicio + 0.5) % 1) === 0 ? '00' : '30';
 
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
+        const start = `${dia}T${startHour.toString().padStart(2,'0')}:${startMinutes}`;
+        const end = `${dia}T${endHour.toString().padStart(2,'0')}:${endMinutes}`;
+
+        eventosFalsos.push({
+            id: `fake-${horaInicio}`,
+            title: 'Disponible',
+            start: start,
+            end: end,
+            color: '#28a745',
+            extendedProps: { is_reserved: false }
+        });
+
+        horaInicio += 0.5; // Incremento de 30 min
     }
-    const csrftoken = getCookie('csrftoken');
+    return eventosFalsos;
+}
 
+// ----------------------------
+// INICIALIZACIÓN DE FULLCALENDAR
+// ----------------------------
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
 
-    // ----------------------------------------------------
-    // FUNCIÓN PARA AGREGAR DISPONIBILIDAD (VERSIÓN FINAL Y COMPLETA)
-    // ----------------------------------------------------
-    function agregarDisponibilidad() {
-        const startTime = document.getElementById('start-time').value;
-        const endTime = document.getElementById('end-time').value;
+    // Horarios simulados
+    var eventos = generarHorariosFalsos();
 
-        if (!startTime || !endTime) {
-            alert("Por favor, selecciona las fechas y horas de inicio y fin.");
-            return;
-        }
-        
-        // Convertir a objeto Date para verificación y cálculo del día de la semana
-        const startDate = new Date(startTime);
-        const endDate = new Date(endTime);
+    // Servicios de tarot
+    const servicios = [
+        {nombre: "Tarot Básico", duracion: 30, precio: 15000},
+        {nombre: "Tarot Completo", duracion: 60, precio: 25000},
+        {nombre: "Tarot del Amor", duracion: 45, precio: 20000},
+        {nombre: "Tarot Kármico", duracion: 90, precio: 30000},
+    ];
 
-        // Verifica que la hora de fin sea posterior a la de inicio
-        if (endDate <= startDate) {
-            alert("La hora de fin debe ser posterior a la hora de inicio.");
-            return;
-        }
-        
-        // *** CÁLCULO DEL DÍA DE LA SEMANA ***
-        // getDay() devuelve: 0=Domingo, 1=Lunes, ..., 6=Sábado (Estándar JS).
-        // Si tu modelo Django/DB utiliza 0=Domingo, usamos este valor directamente.
-        const diaSemana = startDate.getDay(); 
-        // Si el valor no es un número válido (NaN), esto podría causar el error si JS intentara enviarlo.
-        // Pero dado que el input es datetime-local, asumimos que startDate es un objeto Date válido.
-        // **********************************
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        locale: 'es',
+        allDaySlot: false,
+        slotDuration: '00:30:00',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'timeGridWeek,timeGridDay,listWeek'
+        },
+        events: eventos,
+        selectable: false,
 
-        // Envío AJAX
-        fetch(disponibilidadUrl, { 
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken 
-            },
-            body: JSON.stringify({
-                start_time: startTime, 
-                end_time: endTime,
-                dia_semana: diaSemana, // <--- ¡CAMBIO CLAVE AÑADIDO Y NECESARIO!
-                action: 'add' 
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if(data.success) {
-                // Si la operación en Django es exitosa, se añade el evento al calendario
-                calendar.addEvent({
-                    id: data.event_id, 
-                    title: 'Disponible',
-                    start: startTime,
-                    end: endTime,
-                    color: '#28a745', 
-                    extendedProps: {
-                        is_reserved: false 
-                    }
+        eventClick: function(info) {
+            if(!info.event.extendedProps.is_reserved) {
+                info.event.setProp('title', 'Ocupado');
+                info.event.setExtendedProp('is_reserved', true);
+                info.event.setProp('color', '#dc3545');
+
+                let mensaje = "Selecciona un servicio:\n";
+                servicios.forEach(s => {
+                    mensaje += `${s.nombre} - $${s.precio} - ${s.duracion} min\n`;
                 });
-                alert('Horario marcado como disponible.');
-                document.getElementById('form-disponibilidad').reset(); // Limpia el formulario
+                alert(mensaje);
             } else {
-                // Muestra el error específico que viene de Django (ej. "Falta el valor de dia_semana...")
-                alert('Error al marcar disponibilidad: ' + data.error);
+                alert('Este horario ya está ocupado.');
             }
-        })
-        .catch(error => {
-            console.error('Error en la petición AJAX:', error);
-            alert('Ocurrió un error de conexión.');
-        });
-    }
+        },
 
-    // ----------------------------------------------------
-    // INICIALIZACIÓN DE FULLCALENDAR
-    // ----------------------------------------------------
-    document.addEventListener('DOMContentLoaded', function() {
-        var calendarEl = document.getElementById('calendar');
-
-        var eventos = JSON.parse('{{ horarios_eventos_json|safe }}' || '[]');
-
-        calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'timeGridWeek',
-            locale: 'es',
-            allDaySlot: false,
-            slotDuration: '00:30:00',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'timeGridWeek,timeGridDay,listWeek'
-            },
-            events: eventos,
-            selectable: false,
-            
-            eventClick: function(info) {
-                if(info.event.title === "Disponible" && !info.event.extendedProps.is_reserved) { 
-                    let confirmar = confirm(`¿Deseas eliminar este horario disponible?\nDesde: ${info.event.startStr.slice(0, 16).replace('T', ' ')}\nHasta: ${info.event.endStr.slice(0, 16).replace('T', ' ')}`);
-                    
-                    if (confirmar) {
-                        fetch(disponibilidadUrl, { 
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrftoken 
-                            },
-                            body: JSON.stringify({
-                                event_id: info.event.id,
-                                action: 'delete'
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if(data.success) {
-                                info.event.remove(); 
-                                alert('Horario eliminado correctamente.');
-                            } else {
-                                alert('Error al eliminar horario: ' + data.error);
-                            }
-                        });
-                    }
-                } else if (info.event.extendedProps.is_reserved) {
-                    alert('Este horario ya está reservado y no puede ser eliminado desde aquí.');
-                }
-            },
-            eventDidMount: function(info) {
-                if (info.event.extendedProps.is_reserved) {
-                    info.el.style.backgroundColor = '#dc3545'; 
-                    info.el.style.borderColor = '#dc3545'; 
-                } else {
-                    info.el.style.backgroundColor = '#28a745'; 
-                    info.el.style.borderColor = '#28a745'; 
-                }
+        eventDidMount: function(info) {
+            if(info.event.extendedProps.is_reserved) {
+                info.el.style.backgroundColor = '#dc3545';
+                info.el.style.borderColor = '#dc3545';
+            } else {
+                info.el.style.backgroundColor = '#28a745';
+                info.el.style.borderColor = '#28a745';
             }
-        });
-
-        calendar.render();
+        }
     });
+
+    calendar.render();
+});
 </script>
 
 <style>
@@ -195,7 +132,7 @@
     color: #fff;
     font-weight: 500;
     cursor: pointer;
-    border: none !important; 
+    border: none !important;
     padding: 5px;
 }
 
@@ -205,15 +142,8 @@
     border-radius: 12px;
     backdrop-filter: blur(10px);
 }
+</style>
+{% endblock %}
 
-.btn-gold {
-    background-color: #FFD700;
-    border-color: #FFD700;
-    color: #000;
-}
-.btn-gold:hover {
-    background-color: #e5c100;
-    border-color: #e5c100;
-}
 </style>
 {% endblock %}
