@@ -70,7 +70,7 @@
     document.addEventListener('DOMContentLoaded', function () {
 
         const calendarEl = document.getElementById('calendar');
-        const eventos = JSON.parse('{{ horarios_eventos_json|safe }}' || '[]');
+        const eventos = {{ horarios_eventos_json|safe }};
 
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'timeGridWeek',
@@ -88,7 +88,6 @@
 
             eventClick: function (info) {
                 if (info.event.title === "Disponible" && !info.event.extendedProps.is_reserved) {
-
                     const confirmar = confirm(
                         `¿Deseas eliminar este horario disponible?\n` +
                         `Desde: ${info.event.startStr.slice(0,16).replace('T',' ')}\n` +
