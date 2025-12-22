@@ -164,17 +164,14 @@ def eliminar_reporte(request, reporte_id):
 
 # ==================== VISTAS DE CALENDARIO ====================
 
-@login_required
 def calendario_disponibilidad_view(request):
-    """Muestra el calendario con los horarios de disponibilidad del tarotista."""
-    if not hasattr(request.user, 'tarotista'):
-        messages.error(request, 'Solo los tarotistas pueden gestionar su disponibilidad.')
-        return redirect('perfil')
+    """
+    Muestra el calendario con TODAS las horas disponibles de todos los tarotistas.
+    """
+    # Obtener todos los horarios
+    horarios = Disponibilidad.objects.all()
 
-    tarotista = request.user.tarotista
-    horarios = Disponibilidad.objects.filter(tarotista=tarotista)
-
-    # Fecha del lunes de la semana actual
+    # Calcular fecha del lunes de la semana actual
     hoy = date.today()
     lunes_semana = hoy - timedelta(days=hoy.weekday())
 
@@ -186,14 +183,16 @@ def calendario_disponibilidad_view(request):
 
         eventos_fc.append({
             'id': h.pk,
-            'title': 'Reservado' if h.reservado else 'Disponible',
-            'start': start_dt,
-            'end': end_dt,
-            'extendedProps': {'is_reserved': h.reservado},
+            'title': f'{h.tarotista.usuario.get_full_name()} - ' + ('Reservado' if h.reservado else 'Disponible'),
+            'start': start_dt.isoformat(),
+            'end': end_dt.isoformat(),
+            'extendedProps': {
+                'is_reserved': h.reservado,
+                'tarotista_id': h.tarotista.id
+            },
         })
 
-    # Serialización correcta con DjangoJSONEncoder
-    horarios_eventos_json = json.dumps(eventos_fc, cls=DjangoJSONEncoder)
+    horarios_eventos_json = json.dumps(eventos_fc)
 
     context = {
         'total_horarios': horarios.count(),
