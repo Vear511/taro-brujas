@@ -163,6 +163,35 @@ def eliminar_reporte(request, reporte_id):
 
 
 # ==================== VISTAS DE CALENDARIO ====================
+def calendario_disponibilidad_todos(request):
+    """
+    Vista para mostrar todas las horas disponibles y reservadas de todos los tarotistas.
+    """
+    horarios = Disponibilidad.objects.select_related('tarotista').all()
+
+    # Calcular fecha del lunes de la semana actual
+    hoy = date.today()
+    lunes_semana = hoy - timedelta(days=hoy.weekday())
+
+    eventos_fc = []
+    for h in horarios:
+        fecha_evento = lunes_semana + timedelta(days=h.dia_semana)
+        start_dt = make_aware(datetime.combine(fecha_evento, h.hora_inicio))
+        end_dt = make_aware(datetime.combine(fecha_evento, h.hora_fin))
+
+        eventos_fc.append({
+            'id': h.pk,
+            'title': f"{h.tarotista.usuario.get_full_name()} - {'Reservado' if h.reservado else 'Disponible'}",
+            'start': start_dt.isoformat(),
+            'end': end_dt.isoformat(),
+            'extendedProps': {'is_reserved': h.reservado},
+        })
+
+    context = {
+        'horarios_eventos_json': json.dumps(eventos_fc)
+    }
+
+    return render(request, 'calendario_todos.html', context)
 
 def calendario_disponibilidad_view(request):
     """
