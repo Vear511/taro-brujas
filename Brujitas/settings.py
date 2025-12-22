@@ -13,6 +13,26 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-clave-temporal')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
+if DEBUG:
+    # Base de datos local (SQLite)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / "db.sqlite3",
+        }
+    }
+else:
+    # Base de datos en Railway (PostgreSQL)
+    DATABASES = {
+        'default': dj_database_url.parse(
+            os.getenv("DATABASE_URL", ""),  # mejor usar variable de entorno
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+
+
+
 # Ajusta el host de Railway para evitar problemas en producción
 ALLOWED_HOSTS = ['.railway.app', 'localhost', '127.0.0.1']
 
@@ -82,14 +102,6 @@ WSGI_APPLICATION = 'Brujitas.wsgi.application'
 # WARNING: ESTA URL CONTIENE CREDENCIALES Y DEBE ELIMINARSE DESPUÉS DE LA PRUEBA.
 DATABASE_URL_HARDCODED = 'postgresql://postgres:PXVoBhORsOECYeHxrwIbcELwJAsPmpor@hopper.proxy.rlwy.net:22112/railway'
 
-# Usamos dj_database_url.parse() para convertir la cadena en un diccionario
-DATABASES = {
-    'default': dj_database_url.parse(
-        DATABASE_URL_HARDCODED,
-        conn_max_age=600,
-        ssl_require=True # Necesario para Railway
-    )
-}
 
 # -------------------------
 # VALIDADORES DE CONTRASEÑA
