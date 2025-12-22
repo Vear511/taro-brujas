@@ -11,6 +11,8 @@ urlpatterns = [
     # URLs de Disponibilidad del Calendario (NUEVAS RUTAS) 📅
     path('calendario-disponibilidad/', views.calendario_disponibilidad_view, name='calendario_disponibilidad'),
     path('disponibilidad-ajax/', views.manejar_disponibilidad_ajax, name='manejar_disponibilidad_ajax'),
+    path('calendario-todos/', views.calendario_disponibilidad_todos, name='calendario_todos'),
+
     # Las funciones 'calendario_disponibilidad_view' y 'manejar_disponibilidad_ajax' 
     # deben existir en tu archivo 'views.py'.
     
