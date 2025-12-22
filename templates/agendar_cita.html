@@ -10,6 +10,29 @@
         </div>
     </div>
 
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Total Horarios</h5>
+                <p class="text-light display-6">{{ total_horarios|default:'0' }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Disponibles</h5>
+                <p class="text-light display-6">{{ horarios_disponibles|default:'0' }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Reservados</h5>
+                <p class="text-light display-6">{{ horarios_reservados|default:'0' }}</p>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-lg-12 mb-4">
             <div class="card-minimal p-4">
@@ -24,40 +47,38 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const calendarEl = document.getElementById('calendar');
-        const eventos = {{ horarios_eventos_json|safe }};
+document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('calendar');
+    const eventos = {{ horarios_eventos_json|safe }};
 
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'timeGridWeek',
-            locale: 'es',
-            allDaySlot: false,
-            slotDuration: '00:30:00',
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        locale: 'es',
+        allDaySlot: false,
+        slotDuration: '00:30:00',
 
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'timeGridWeek,timeGridDay,listWeek'
-            },
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'timeGridWeek,timeGridDay,listWeek'
+        },
 
-            events: eventos,
+        events: eventos,
 
-            eventDidMount: function (info) {
-                // Colores según disponibilidad
-                if (info.event.extendedProps.is_reserved) {
-                    info.el.style.backgroundColor = '#dc3545';
-                    info.el.style.borderColor = '#dc3545';
-                } else {
-                    info.el.style.backgroundColor = '#28a745';
-                    info.el.style.borderColor = '#28a745';
-                }
-                // Mostrar nombre del tarotista en tooltip
-                info.el.title = info.event.title;
+        eventDidMount: function(info) {
+            // Color según disponibilidad
+            if (info.event.extendedProps.is_reserved) {
+                info.el.style.backgroundColor = '#dc3545';
+                info.el.style.borderColor = '#dc3545';
+            } else {
+                info.el.style.backgroundColor = '#28a745';
+                info.el.style.borderColor = '#28a745';
             }
-        });
-
-        calendar.render();
+        }
     });
+
+    calendar.render();
+});
 </script>
 
 <style>
@@ -88,4 +109,5 @@
     backdrop-filter: blur(10px);
 }
 </style>
+
 {% endblock %}
