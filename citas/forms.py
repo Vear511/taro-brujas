@@ -1,10 +1,9 @@
 from django import forms
-from .models import Cita
 from tarotistas.models import Tarotista
 
 class CitaForm(forms.Form):
     tarotista = forms.ModelChoiceField(
-        queryset=Tarotista.objects.filter(disponible=True),
+        queryset=Tarotista.objects.none(),
         empty_label="Selecciona un tarotista"
     )
     fecha = forms.DateField(widget=forms.SelectDateWidget)
@@ -14,3 +13,12 @@ class CitaForm(forms.Form):
         required=False,
         label='Notas o preguntas específicas'
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['tarotista'].queryset = (
+            Tarotista.objects
+            .select_related('usuario')
+            .filter(disponible=True)
+            .order_by('usuario__first_name')
+        )
