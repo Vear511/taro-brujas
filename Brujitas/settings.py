@@ -167,14 +167,10 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "").strip()
 
 if CLOUDINARY_URL:
-    # Se habilita Cloudinary si existe variable en Railway
     INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
     DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
-
-    # Django exige definir MEDIA_URL, aunque Cloudinary entregue URLs completas
     MEDIA_URL = "/media/"
 else:
-    # Local / sin Cloudinary (ojo: en Railway NO recomendado)
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
 
