@@ -10,8 +10,15 @@ from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 from django.db import transaction
+from django.conf import settings
+from django.core.mail import send_mail
+from django.utils import timezone as dj_timezone
 
 from .models import Reporte, Disponibilidad
+from citas.models import Cita
+from usuarios.models import Usuario
+from tarotistas.models import Tarotista
+
 
 # --- Endpoint para reservar horario y crear cita ---
 @csrf_exempt
@@ -20,30 +27,42 @@ from .models import Reporte, Disponibilidad
 def reservar_horario(request):
     # Restringir a tarotistas
     if hasattr(request.user, 'es_tarotista') and request.user.es_tarotista:
-        return JsonResponse({'success': False, 'error': 'Los tarotistas no pueden agendar horas como clientes.'}, status=403)
+        return JsonResponse(
+            {'success': False, 'error': 'Los tarotistas no pueden agendar horas como clientes.'},
+            status=403
+        )
+
     try:
         data = json.loads(request.body)
         evento_id = data.get('evento_id')
         servicio = data.get('servicio', 'basico')
+
         if not evento_id:
             return JsonResponse({'success': False, 'error': 'ID de evento requerido.'}, status=400)
-        # Buscar el bloque de disponibilidad
-        bloque = Disponibilidad.objects.select_for_update().get(id=evento_id)
-        if bloque.reservado:
-            return JsonResponse({'success': False, 'error': 'El horario ya está reservado.'}, status=409)
-        # Marcar como reservado y crear la cita
+
+        # ⚠️ IMPORTANTE:
+        # select_for_update() DEBE ejecutarse dentro de una transacción (PostgreSQL/Railway).
         with transaction.atomic():
+            # Buscar el bloque de disponibilidad con lock
+            bloque = Disponibilidad.objects.select_for_update().get(id=evento_id)
+
+            if bloque.reservado:
+                return JsonResponse({'success': False, 'error': 'El horario ya está reservado.'}, status=409)
+
+            # Marcar como reservado
             bloque.reservado = True
             bloque.save()
-            # Crear la cita
-            from citas.models import Cita
+
             tarotista = bloque.tarotista
+
             # Calcular fecha y hora exacta
             today = timezone.now().date()
             js_today = (today.weekday() + 1) % 7
             dias_hasta = (bloque.dia_semana - js_today) % 7
             fecha = today + timedelta(days=dias_hasta)
+
             fecha_hora = datetime.combine(fecha, bloque.hora_inicio)
+
             cita = Cita.objects.create(
                 cliente=request.user,
                 tarotista=tarotista,
@@ -52,32 +71,49 @@ def reservar_horario(request):
                 estado='confirmada',
                 servicio=servicio
             )
-            # Enviar correos de confirmación
-            from django.core.mail import send_mail
-            from django.conf import settings
-            from django.utils import timezone as dj_timezone
+
+            # Enviar correos de confirmación (esto usa tu EMAIL_BACKEND global SendGrid)
             tarotista_nombre = tarotista.usuario.get_full_name() if hasattr(tarotista, 'usuario') else str(tarotista)
+
             fecha_hora_aware = cita.fecha_hora
             if dj_timezone.is_naive(fecha_hora_aware):
                 fecha_hora_aware = dj_timezone.make_aware(fecha_hora_aware, dj_timezone.get_current_timezone())
-            fecha = fecha_hora_aware.strftime('%d/%m/%Y %H:%M')
+
+            fecha_str = fecha_hora_aware.strftime('%d/%m/%Y %H:%M')
             servicio_display = dict(Cita.SERVICIOS).get(servicio, servicio)
             subject = 'Confirmación de reserva de cita'
-            # Correo para el usuario
-            message_usuario = f"Hola {request.user.get_full_name() or request.user.username},\n\nTu cita ha sido reservada con éxito.\n\nTarotista: {tarotista_nombre}\nFecha y hora: {fecha}\nTipo de servicio: {servicio_display}\n\nGracias por confiar en Brujitas."
-            send_mail(subject, message_usuario, settings.DEFAULT_FROM_EMAIL, [request.user.email])
-            # Correo para el tarotista
-            message_tarotista = f"Hola {tarotista_nombre},\n\nTienes una nueva cita agendada.\n\nCliente: {request.user.get_full_name() or request.user.username}\nFecha y hora: {fecha}\nTipo de servicio: {servicio_display}\n\nPor favor revisa tu panel para más detalles."
-            if hasattr(tarotista, 'usuario') and tarotista.usuario.email:
+
+            # Correo para el usuario (solo si tiene email)
+            if getattr(request.user, "email", None):
+                message_usuario = (
+                    f"Hola {request.user.get_full_name() or request.user.username},\n\n"
+                    f"Tu cita ha sido reservada con éxito.\n\n"
+                    f"Tarotista: {tarotista_nombre}\n"
+                    f"Fecha y hora: {fecha_str}\n"
+                    f"Tipo de servicio: {servicio_display}\n\n"
+                    f"Gracias por confiar en Brujitas."
+                )
+                send_mail(subject, message_usuario, settings.DEFAULT_FROM_EMAIL, [request.user.email])
+
+            # Correo para el tarotista (solo si tiene email)
+            if hasattr(tarotista, 'usuario') and getattr(tarotista.usuario, "email", None):
+                message_tarotista = (
+                    f"Hola {tarotista_nombre},\n\n"
+                    f"Tienes una nueva cita agendada.\n\n"
+                    f"Cliente: {request.user.get_full_name() or request.user.username}\n"
+                    f"Fecha y hora: {fecha_str}\n"
+                    f"Tipo de servicio: {servicio_display}\n\n"
+                    f"Por favor revisa tu panel para más detalles."
+                )
                 send_mail(subject, message_tarotista, settings.DEFAULT_FROM_EMAIL, [tarotista.usuario.email])
+
         return JsonResponse({'success': True, 'cita_id': cita.id})
+
     except Disponibilidad.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Horario no encontrado.'}, status=404)
+
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
-from citas.models import Cita
-from usuarios.models import Usuario
-from tarotistas.models import Tarotista
 
 
 # ==================== VISTAS BÁSICAS ====================
@@ -220,26 +256,16 @@ def eliminar_reporte(request, reporte_id):
 
 @login_required
 def calendario_disponibilidad_view(request):
-    print('DEBUG usuario:', request.user)
-    print('DEBUG usuario.id:', request.user.id)
-    print('DEBUG usuario.username:', getattr(request.user, 'username', None))
-    print('DEBUG usuario.email:', getattr(request.user, 'email', None))
-    print('DEBUG usuario.is_authenticated:', request.user.is_authenticated)
-    print('DEBUG usuario model:', type(request.user))
-    if hasattr(request.user, 'tarotista'):
-        print('DEBUG tarotista.id:', request.user.tarotista.id)
-        print('DEBUG tarotista.usuario.id:', request.user.tarotista.usuario.id)
-    else:
-        print('DEBUG tarotista: NO ASOCIADO')
     if not hasattr(request.user, 'tarotista'):
         messages.error(request, 'Solo tarotistas.')
         return redirect('home')
+
     horarios = Disponibilidad.objects.filter(tarotista=request.user.tarotista)
     today = timezone.now().date()
     eventos = []
 
-    # JS uses getDay(): 0=Sunday .. 6=Saturday. Python's date.weekday(): 0=Monday .. 6=Sunday.
-    # Convert Python weekday to JS convention by (weekday+1)%7
+    # JS getDay(): 0=Sunday .. 6=Saturday
+    # Python weekday(): 0=Monday .. 6=Sunday
     js_today = (today.weekday() + 1) % 7
 
     for h in horarios:
@@ -272,7 +298,6 @@ def calendario_disponibilidad_view(request):
     return render(request, 'calendario.html', context)
 
 
-
 @require_POST
 @login_required
 def manejar_disponibilidad_ajax(request):
@@ -288,7 +313,6 @@ def manejar_disponibilidad_ajax(request):
 
         blocks = int(data.get('blocks', 1))
 
-        # Prepare lists to track exact existing blocks and new blocks to create
         existing_ids = []
         block_objs = []
 
@@ -296,7 +320,6 @@ def manejar_disponibilidad_ajax(request):
             b_start = start_dt + timedelta(minutes=30 * i)
             b_end = b_start + timedelta(minutes=30)
 
-            # Check if an exact block already exists
             exact = Disponibilidad.objects.filter(
                 tarotista=tarotista,
                 dia_semana=dia,
@@ -308,7 +331,6 @@ def manejar_disponibilidad_ajax(request):
                 existing_ids.append(exact.id)
                 continue
 
-            # Check for any overlap with other blocks
             solapado = Disponibilidad.objects.filter(
                 tarotista=tarotista,
                 dia_semana=dia,
@@ -330,25 +352,25 @@ def manejar_disponibilidad_ajax(request):
         if block_objs:
             created = Disponibilidad.objects.bulk_create(block_objs)
 
-        # Combine created IDs and existing IDs
-        all_blocks = []
-        for c in created:
-            all_blocks.append(c.id)
+        all_blocks = [c.id for c in created]
         all_blocks.extend(existing_ids)
 
-        # Build events payload for calendar
         events = []
         today = timezone.now().date()
         js_today = (today.weekday() + 1) % 7
+
         for bid in all_blocks:
             try:
                 b = Disponibilidad.objects.get(id=bid)
             except Disponibilidad.DoesNotExist:
                 continue
+
             dias_hasta = (b.dia_semana - js_today) % 7
             fecha = today + timedelta(days=dias_hasta)
+
             start_dt_block = datetime.combine(fecha, b.hora_inicio)
             end_dt_block = datetime.combine(fecha, b.hora_fin)
+
             events.append({
                 'id': b.id,
                 'start': start_dt_block.isoformat(),
@@ -379,7 +401,6 @@ def horarios_disponibles_json(request):
     user = request.user
     es_tarotista = hasattr(user, 'tarotista')
 
-    # Mostrar horarios libres para todos
     libres = Disponibilidad.objects.filter(reservado=False)
     for h in libres:
         dias_hasta = (h.dia_semana - js_today) % 7
@@ -395,26 +416,22 @@ def horarios_disponibles_json(request):
             'is_reserved': False
         })
 
-    # Mostrar reservados SOLO si:
-    # - El usuario logeado es quien reservó (cliente)
-    # - O el usuario es la tarotista dueña del bloque
-    # Para esto, buscamos la cita asociada a ese bloque (si existe)
     reservados = Disponibilidad.objects.filter(reservado=True)
     for h in reservados:
         mostrar = False
-        # Buscar la cita asociada a este bloque
+
         cita = Cita.objects.filter(
             tarotista=h.tarotista,
             fecha_hora__date=today + timedelta(days=(h.dia_semana - js_today) % 7),
             fecha_hora__time=h.hora_inicio
         ).first()
+
         if cita:
-            # Si el usuario es el cliente que reservó
             if user.is_authenticated and cita.cliente_id == user.id:
                 mostrar = True
-            # Si el usuario es la tarotista dueña del bloque
             if es_tarotista and h.tarotista_id == user.tarotista.id:
                 mostrar = True
+
         if mostrar:
             dias_hasta = (h.dia_semana - js_today) % 7
             fecha = today + timedelta(days=dias_hasta)
@@ -428,6 +445,7 @@ def horarios_disponibles_json(request):
                 'color': '#dc3545',
                 'is_reserved': True
             })
+
     return JsonResponse(eventos, safe=False)
 
 
