@@ -1,10 +1,12 @@
 """
 Django settings for Brujitas project.
-Local + Railway.
+Local + producción (Railway).
 
-- WhiteNoise para static
-- DB por DATABASE_URL (Railway) o sqlite (local)
-- Email global por SendGrid API (HTTPS) usando EMAIL_BACKEND custom
+Incluye:
+- DB: DATABASE_URL (Railway) o SQLite (local)
+- Static: WhiteNoise (collectstatic)
+- Email: SendGrid API como EMAIL_BACKEND global (sirve para reset password también)
+- Media: Cloudinary si existe CLOUDINARY_URL, si no carpeta /media (local)
 """
 
 from pathlib import Path
@@ -18,6 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # --------------------------------------------------
 DEBUG = os.getenv("DEBUG", "0") == "1"
 
+# Solo cargar .env en local (DEBUG=1)
 if DEBUG:
     load_dotenv()
 
@@ -30,13 +33,15 @@ if not SECRET_KEY:
 
 RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
 
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    ".railway.app",
-]
+# Si quieres controlar esto por variable:
+# ALLOWED_HOSTS=".railway.app,localhost,127.0.0.1,taro-brujas-production.up.railway.app"
+raw_hosts = os.getenv("ALLOWED_HOSTS", "").strip()
+if raw_hosts:
+    ALLOWED_HOSTS = [h.strip() for h in raw_hosts.split(",") if h.strip()]
+else:
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".railway.app"]
 
-if RAILWAY_PUBLIC_DOMAIN:
+if RAILWAY_PUBLIC_DOMAIN and RAILWAY_PUBLIC_DOMAIN not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RAILWAY_PUBLIC_DOMAIN)
 
 # --------------------------------------------------
@@ -49,10 +54,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+
     "usuarios",
     "citas",
     "tarotistas",
     "core",
+
     "django_extensions",
 ]
 
@@ -144,7 +151,7 @@ USE_I18N = True
 USE_TZ = True
 
 # --------------------------------------------------
-# STATIC & MEDIA
+# STATIC
 # --------------------------------------------------
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -154,8 +161,22 @@ STATICFILES_DIRS = [_static_dir] if _static_dir.exists() else []
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# --------------------------------------------------
+# MEDIA (Cloudinary en producción)
+# --------------------------------------------------
+CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "").strip()
+
+if CLOUDINARY_URL:
+    # Se habilita Cloudinary si existe variable en Railway
+    INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
+    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
+    # Django exige definir MEDIA_URL, aunque Cloudinary entregue URLs completas
+    MEDIA_URL = "/media/"
+else:
+    # Local / sin Cloudinary (ojo: en Railway NO recomendado)
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
 
 # --------------------------------------------------
 # CSRF / SECURITY (PROD)
@@ -174,20 +195,15 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
 
 # --------------------------------------------------
-# EMAIL (GLOBAL por SendGrid API)
+# EMAIL (GLOBAL via SendGrid API)
 # --------------------------------------------------
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "").strip()
-SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "").strip()
-
-if not SENDGRID_FROM_EMAIL:
-    SENDGRID_FROM_EMAIL = "brujitas.uoh@gmail.com"
-
+SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "").strip() or "brujitas.uoh@gmail.com"
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", SENDGRID_FROM_EMAIL)
 
-# timeout para evitar cuelgues y tener errores claros
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
 
-# IMPORTANTÍSIMO: Esto hace que send_mail() en todo el proyecto use SendGrid API
+# Esto hace que *cualquier* send_mail() (reset password, confirmaciones, etc.) use SendGrid API
 EMAIL_BACKEND = "usuarios.email_backend.SendGridEmailBackend"
 
 # --------------------------------------------------
