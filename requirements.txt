@@ -1,14 +1,15 @@
-asgiref==3.9.1
-dj-database-url==3.0.1
 Django==5.2.6
 gunicorn==23.0.0
-packaging==25.0
-pillow==11.3.0
+whitenoise==6.11.0
+dj-database-url==3.0.1
 psycopg2-binary==2.9.10
 python-dotenv==1.1.1
-sqlparse==0.5.3
-tzdata==2025.2
-whitenoise==6.11.0
 requests==2.32.3
 
-django-extensions
+# Media storage (fotos de perfil) recomendado para Railway
+cloudinary==1.43.0
+django-cloudinary-storage==0.3.0
+
+# Extras (lo tenías)
+django-extensions==4.1
+pillow==11.3.0
