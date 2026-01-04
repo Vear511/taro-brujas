@@ -213,7 +213,7 @@ EMAIL_USE_TLS = True
 
 # 🔴 TEMPORAL – SOLO PARA PRUEBA
 EMAIL_HOST_USER = "brujitas.uoh@gmail.com"
-EMAIL_HOST_PASSWORD = "APP_PASSWORD_SIN_ESPACIOS"
+EMAIL_HOST_PASSWORD = "tgzklbywgdnrlgel"
 DEFAULT_FROM_EMAIL = "brujitas.uoh@gmail.com"
 
 
