@@ -7,8 +7,6 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
-
 # --------------------------------------------------
 # BASE
 # --------------------------------------------------
@@ -16,17 +14,25 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --------------------------------------------------
-# SEGURIDAD
+# DEBUG / ENV
 # --------------------------------------------------
-
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    raise RuntimeError("SECRET_KEY no está definida en las variables de entorno")
 
 DEBUG = os.getenv("DEBUG", "0") == "1"
 
-# Railway suele exponer RAILWAY_PUBLIC_DOMAIN en el servicio web
-RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN")  # ej: tarot-production-xxxx.up.railway.app
+# Solo cargar .env en desarrollo local
+if DEBUG:
+    load_dotenv()
+
+# --------------------------------------------------
+# SEGURIDAD
+# --------------------------------------------------
+
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY no está definida en las variables de entorno")
+
+# Railway suele exponer esto en el servicio web (si no, queda None)
+RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN")
 
 ALLOWED_HOSTS = [
     "localhost",
@@ -34,14 +40,12 @@ ALLOWED_HOSTS = [
     ".railway.app",
 ]
 
-# Si existe, lo agregamos explícitamente
+# Mantengo tu host fijo (opcional, pero no molesta)
+ALLOWED_HOSTS.append("tarot-production-8cbf.up.railway.app")
+
+# Si Railway entrega el dominio público exacto, agréguelo
 if RAILWAY_PUBLIC_DOMAIN:
     ALLOWED_HOSTS.append(RAILWAY_PUBLIC_DOMAIN)
-
-# Si quieres mantener tu dominio fijo, lo puedes dejar (opcional)
-ALLOWED_HOSTS += [
-    "tarot-production-8cbf.up.railway.app",
-]
 
 # --------------------------------------------------
 # APPS
@@ -61,7 +65,7 @@ INSTALLED_APPS = [
     "tarotistas",
     "core",
 
-    # django-extensions (dev)
+    # django-extensions
     "django_extensions",
 ]
 
@@ -86,6 +90,7 @@ MIDDLEWARE = [
 # --------------------------------------------------
 
 ROOT_URLCONF = "Brujitas.urls"
+
 WSGI_APPLICATION = "Brujitas.wsgi.application"
 ASGI_APPLICATION = "Brujitas.asgi.application"
 
@@ -112,10 +117,8 @@ TEMPLATES = [
 # --------------------------------------------------
 # BASE DE DATOS
 # --------------------------------------------------
-# Producción: Postgres vía DATABASE_URL (Railway)
-# Local: SQLite si no hay DATABASE_URL
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
 if DATABASE_URL:
     import dj_database_url
@@ -168,8 +171,6 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-
-# Whitenoise
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
@@ -181,27 +182,17 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.railway.app",
+    "https://tarot-production-8cbf.up.railway.app",
 ]
 
-# Si tenemos el dominio público exacto, lo agregamos
 if RAILWAY_PUBLIC_DOMAIN:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RAILWAY_PUBLIC_DOMAIN}")
 
-# Mantengo tu dominio fijo (opcional)
-CSRF_TRUSTED_ORIGINS.append("https://tarot-production-8cbf.up.railway.app")
-
 if not DEBUG:
-    # Railway usa proxy; esto es importante para HTTPS y redirects
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = True
-
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-
-    # Hardening extra (opcional pero recomendado)
-    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0"))  # pon 31536000 cuando estés seguro
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True if SECURE_HSTS_SECONDS else False
-    SECURE_HSTS_PRELOAD = True if SECURE_HSTS_SECONDS else False
 
 # --------------------------------------------------
 # EMAIL (Gmail SMTP)
@@ -211,9 +202,8 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")  # Tu correo Gmail
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")  # App Password recomendado
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "no-reply@brujitas.local"
 
 # --------------------------------------------------
