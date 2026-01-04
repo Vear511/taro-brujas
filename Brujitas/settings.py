@@ -6,6 +6,7 @@ Configurado para desarrollo local y producción en Railway.
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import urllib.parse
 
 # --------------------------------------------------
 # BASE
@@ -31,19 +32,15 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY no está definida en las variables de entorno")
 
-# Railway suele exponer esto en el servicio web (si no, queda None)
 RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN")
 
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     ".railway.app",
+    "tarot-production-8cbf.up.railway.app",
 ]
 
-# Mantengo tu host fijo (opcional, pero no molesta)
-ALLOWED_HOSTS.append("tarot-production-8cbf.up.railway.app")
-
-# Si Railway entrega el dominio público exacto, agréguelo
 if RAILWAY_PUBLIC_DOMAIN:
     ALLOWED_HOSTS.append(RAILWAY_PUBLIC_DOMAIN)
 
@@ -59,13 +56,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
-    # Apps del proyecto
     "usuarios",
     "citas",
     "tarotistas",
     "core",
 
-    # django-extensions
     "django_extensions",
 ]
 
@@ -115,10 +110,23 @@ TEMPLATES = [
 ]
 
 # --------------------------------------------------
-# BASE DE DATOS
+# BASE DE DATOS (CON DEBUG)
 # --------------------------------------------------
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
+print("########################################")
+print("### DEBUG DATABASE CONFIG")
+print("### RAW DATABASE_URL:", repr(DATABASE_URL))
+
+if DATABASE_URL:
+    u = urllib.parse.urlparse(DATABASE_URL)
+    print("### DB HOST USED:", u.hostname)
+    print("### DB NAME:", u.path)
+else:
+    print("### DATABASE_URL NO DEFINIDA")
+
+print("########################################")
 
 if DATABASE_URL:
     import dj_database_url
@@ -195,15 +203,15 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
 
 # --------------------------------------------------
-# EMAIL (Gmail SMTP)
+# EMAIL
 # --------------------------------------------------
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")  # Tu correo Gmail
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")  # App Password recomendado
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "no-reply@brujitas.local"
 
 # --------------------------------------------------
@@ -211,3 +219,4 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "no-reply@brujitas.local"
 # --------------------------------------------------
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
