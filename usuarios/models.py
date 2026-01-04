@@ -1,49 +1,23 @@
-# usuarios/models.py
-
-from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 
 class Usuario(AbstractUser):
     """
-    Modelo de usuario personalizado del sistema.
-    Extiende AbstractUser para agregar información adicional
-    y control de bloqueo.
+    Usuario custom del sistema.
+    - avatar: foto de perfil (ImageField) -> con Cloudinary se almacena remoto automáticamente.
+    - es_tarotista: para diferenciar roles.
+    - email_verificado: para flujos de verificación.
     """
 
-    # --- Identificación ---
-    rut = models.CharField(
-        max_length=12,
-        unique=True,
-        blank=True,
-        verbose_name='RUT'
-    )
-
-    # --- Información personal ---
-    telefono = models.CharField(max_length=15, blank=True)
-    fecha_nacimiento = models.DateField(null=True, blank=True)
-    apodo = models.CharField(max_length=50, blank=True)
-    bio = models.TextField(blank=True)
     avatar = models.ImageField(
-        upload_to='avatars/',
+        upload_to="avatars/",
         blank=True,
         null=True
     )
 
-    # --- Control y estado ---
-    bloqueado = models.BooleanField(
-        default=False,
-        help_text='Impide que el usuario inicie sesión'
-    )
-    creado_en = models.DateTimeField(auto_now_add=True)
+    es_tarotista = models.BooleanField(default=False)
+    email_verificado = models.BooleanField(default=False)
 
     def __str__(self):
-        nombre = self.get_full_name()
-        return nombre if nombre else self.username
-
-    @property
-    def es_tarotista(self):
-        """
-        Retorna True si el usuario tiene perfil de tarotista asociado.
-        """
-        return hasattr(self, 'tarotista')
+        return self.username
