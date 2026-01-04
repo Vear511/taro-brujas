@@ -1,13 +1,10 @@
 """
 Django settings for Brujitas project.
-Configurado para desarrollo local y producción en Railway.
+Local + Railway.
 
-Cambios clave:
-- Sin prints de DATABASE_URL (no exponer credenciales en logs)
-- DEBUG controlado por variable de entorno
-- DB por DATABASE_URL (Railway) o SQLite (local)
-- Static con WhiteNoise
-- Email por API (SendGrid): variables SENDGRID_API_KEY y SENDGRID_FROM_EMAIL
+- WhiteNoise para static
+- DB por DATABASE_URL (Railway) o sqlite (local)
+- Email global por SendGrid API (HTTPS) usando EMAIL_BACKEND custom
 """
 
 from pathlib import Path
@@ -21,7 +18,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # --------------------------------------------------
 DEBUG = os.getenv("DEBUG", "0") == "1"
 
-# Solo cargar .env en local (con DEBUG=1)
 if DEBUG:
     load_dotenv()
 
@@ -32,7 +28,6 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY no está definida en variables de entorno")
 
-# Railway suele exponer RAILWAY_PUBLIC_DOMAIN en algunos setups; si no, igual permitimos *.railway.app
 RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
 
 ALLOWED_HOSTS = [
@@ -154,7 +149,6 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Solo agrega STATICFILES_DIRS si la carpeta existe (evita warnings en Railway)
 _static_dir = BASE_DIR / "static"
 STATICFILES_DIRS = [_static_dir] if _static_dir.exists() else []
 
@@ -180,20 +174,23 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
 
 # --------------------------------------------------
-# EMAIL (API via SendGrid)
+# EMAIL (GLOBAL por SendGrid API)
 # --------------------------------------------------
-# Requiere en Railway Variables:
-# - SENDGRID_API_KEY=xxxxx
-# - SENDGRID_FROM_EMAIL=brujitas.uoh@gmail.com (o el remitente verificado en SendGrid)
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "").strip()
 SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "").strip()
 
-# Si no defines SENDGRID_FROM_EMAIL, puedes poner uno por defecto (pero en SendGrid debe estar verificado)
 if not SENDGRID_FROM_EMAIL:
     SENDGRID_FROM_EMAIL = "brujitas.uoh@gmail.com"
+
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", SENDGRID_FROM_EMAIL)
+
+# timeout para evitar cuelgues y tener errores claros
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
+
+# IMPORTANTÍSIMO: Esto hace que send_mail() en todo el proyecto use SendGrid API
+EMAIL_BACKEND = "usuarios.email_backend.SendGridEmailBackend"
 
 # --------------------------------------------------
 # DEFAULT
 # --------------------------------------------------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
