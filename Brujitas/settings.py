@@ -1,44 +1,44 @@
 """
 Django settings for Brujitas project.
 Configurado para desarrollo local y producción en Railway.
+
+Cambios clave:
+- Sin prints de DATABASE_URL (no exponer credenciales en logs)
+- DEBUG controlado por variable de entorno
+- DB por DATABASE_URL (Railway) o SQLite (local)
+- Static con WhiteNoise
+- Email por API (SendGrid): variables SENDGRID_API_KEY y SENDGRID_FROM_EMAIL
 """
 
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-import urllib.parse
-
-# --------------------------------------------------
-# BASE
-# --------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --------------------------------------------------
-# DEBUG / ENV
+# ENV / DEBUG
 # --------------------------------------------------
-
 DEBUG = os.getenv("DEBUG", "0") == "1"
 
-# Solo cargar .env en desarrollo local
+# Solo cargar .env en local (con DEBUG=1)
 if DEBUG:
     load_dotenv()
 
 # --------------------------------------------------
-# SEGURIDAD
+# SECURITY
 # --------------------------------------------------
-
-SECRET_KEY = os.environ.get("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
-    raise RuntimeError("SECRET_KEY no está definida en las variables de entorno")
+    raise RuntimeError("SECRET_KEY no está definida en variables de entorno")
 
-RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+# Railway suele exponer RAILWAY_PUBLIC_DOMAIN en algunos setups; si no, igual permitimos *.railway.app
+RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
 
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     ".railway.app",
-    "tarot-production-8cbf.up.railway.app",
 ]
 
 if RAILWAY_PUBLIC_DOMAIN:
@@ -47,7 +47,6 @@ if RAILWAY_PUBLIC_DOMAIN:
 # --------------------------------------------------
 # APPS
 # --------------------------------------------------
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -55,19 +54,16 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     "usuarios",
     "citas",
     "tarotistas",
     "core",
-
     "django_extensions",
 ]
 
 # --------------------------------------------------
 # MIDDLEWARE
 # --------------------------------------------------
-
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -83,16 +79,13 @@ MIDDLEWARE = [
 # --------------------------------------------------
 # URLS / WSGI / ASGI
 # --------------------------------------------------
-
 ROOT_URLCONF = "Brujitas.urls"
-
 WSGI_APPLICATION = "Brujitas.wsgi.application"
 ASGI_APPLICATION = "Brujitas.asgi.application"
 
 # --------------------------------------------------
 # TEMPLATES
 # --------------------------------------------------
-
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -110,27 +103,12 @@ TEMPLATES = [
 ]
 
 # --------------------------------------------------
-# BASE DE DATOS (CON DEBUG)
+# DATABASE
 # --------------------------------------------------
-
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
-
-print("########################################")
-print("### DEBUG DATABASE CONFIG")
-print("### RAW DATABASE_URL:", repr(DATABASE_URL))
-
-if DATABASE_URL:
-    u = urllib.parse.urlparse(DATABASE_URL)
-    print("### DB HOST USED:", u.hostname)
-    print("### DB NAME:", u.path)
-else:
-    print("### DATABASE_URL NO DEFINIDA")
-
-print("########################################")
 
 if DATABASE_URL:
     import dj_database_url
-
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
@@ -150,7 +128,6 @@ else:
 # --------------------------------------------------
 # AUTH
 # --------------------------------------------------
-
 AUTH_USER_MODEL = "usuarios.Usuario"
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -164,9 +141,8 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 # --------------------------------------------------
-# INTERNACIONALIZACIÓN
+# I18N / TZ
 # --------------------------------------------------
-
 LANGUAGE_CODE = "es-es"
 TIME_ZONE = "America/Santiago"
 USE_I18N = True
@@ -175,22 +151,23 @@ USE_TZ = True
 # --------------------------------------------------
 # STATIC & MEDIA
 # --------------------------------------------------
-
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# Solo agrega STATICFILES_DIRS si la carpeta existe (evita warnings en Railway)
+_static_dir = BASE_DIR / "static"
+STATICFILES_DIRS = [_static_dir] if _static_dir.exists() else []
+
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # --------------------------------------------------
-# CSRF / SEGURIDAD PRODUCCIÓN
+# CSRF / SECURITY (PROD)
 # --------------------------------------------------
-
 CSRF_TRUSTED_ORIGINS = [
     "https://*.railway.app",
-    "https://tarot-production-8cbf.up.railway.app",
 ]
 
 if RAILWAY_PUBLIC_DOMAIN:
@@ -203,25 +180,20 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
 
 # --------------------------------------------------
-# EMAIL
+# EMAIL (API via SendGrid)
 # --------------------------------------------------
+# Requiere en Railway Variables:
+# - SENDGRID_API_KEY=xxxxx
+# - SENDGRID_FROM_EMAIL=brujitas.uoh@gmail.com (o el remitente verificado en SendGrid)
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "").strip()
+SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "").strip()
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_TIMEOUT = 20
-
-
-# 🔴 TEMPORAL – SOLO PARA PRUEBA
-EMAIL_HOST_USER = "brujitas.uoh@gmail.com"
-EMAIL_HOST_PASSWORD = "tgzklbywgdnrlgel"
-DEFAULT_FROM_EMAIL = "brujitas.uoh@gmail.com"
-
+# Si no defines SENDGRID_FROM_EMAIL, puedes poner uno por defecto (pero en SendGrid debe estar verificado)
+if not SENDGRID_FROM_EMAIL:
+    SENDGRID_FROM_EMAIL = "brujitas.uoh@gmail.com"
 
 # --------------------------------------------------
 # DEFAULT
 # --------------------------------------------------
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
