@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Mi Perfil - Tarotista{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card-minimal p-4">
+                <div class="text-center mb-4">
+                    <div class="profile-image mb-3">
+                        {% if user.avatar %}
+                            <img src="{{ user.avatar.url }}" alt="Foto de {{ user.username }}" class="rounded-circle" width="120" height="120">
+                        {% else %}
+                            <div class="placeholder-image rounded-circle d-flex align-items-center justify-content-center">
+                                <span class="icon-large text-gold">🔮</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <h2 class="text-gold">{{ user.get_full_name|default:user.username }}</h2>
+                    <p class="text-muted">@{{ user.username }}</p>
+                </div>
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label text-light">Nombre</label>
+                        <input type="text" name="first_name" class="form-control bg-dark text-light border-minimal" value="{{ user.first_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light">Apellido</label>
+                        <input type="text" name="last_name" class="form-control bg-dark text-light border-minimal" value="{{ user.last_name }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light">Apodo</label>
+                        <input type="text" name="apodo" class="form-control bg-dark text-light border-minimal" value="{{ user.apodo }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light">Imagen de perfil</label>
+                        <input type="file" name="imagen" class="form-control bg-dark text-light border-minimal">
+                        {% if user.avatar %}<small class="text-muted">Sube una nueva para reemplazar la existente.</small>{% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light">Descripción / Biografía</label>
+                        <textarea name="bio" class="form-control bg-dark text-light border-minimal" rows="4">{{ user.bio }}</textarea>
+                    </div>
+                    <button type="submit" class="btn-gold w-100 py-2 mt-3">💾 Guardar Cambios</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

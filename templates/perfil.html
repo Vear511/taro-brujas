@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Mi Perfil - Brujitas{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card-minimal">
+                <!-- Header del perfil -->
+                <div class="text-center mb-4">
+                    <div class="profile-image mb-3">
+                        {% if user.avatar %}
+                            <img src="{{ user.avatar.url }}" alt="Foto de {{ user.username }}" class="rounded-circle" width="120" height="120">
+                        {% else %}
+                            <div class="placeholder-image rounded-circle d-flex align-items-center justify-content-center">
+                                <span class="placeholder-emoji">
+                                    {% if user.es_tarotista %}🔮
+                                    {% else %}🌟
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <h2 class="text-gold">{{ user.get_full_name|default:user.username }}</h2>
+                    <p class="text-muted">{{ user.email }}</p>
+
+                    <span class="badge-minimal">
+                        {% if user.es_tarotista %}Tarotista
+                        {% elif user.is_staff %}Administrador
+                        {% else %}Cliente
+                        {% endif %}
+                    </span>
+                </div>
+
+                <!-- Información en tarjetas -->
+                <div class="row">
+                    <!-- Información Personal -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card-minimal h-100">
+                            <div class="mb-3">
+                                <h5 class="text-gold">📋 Información Personal</h5>
+                            </div>
+                            <div class="text-light">
+                                <p><strong>Nombre:</strong> {{ user.first_name|default:"No especificado" }}</p>
+                                <p><strong>Apellido:</strong> {{ user.last_name|default:"No especificado" }}</p>
+                                {% if user.apodo %}
+                                <p><strong>Apodo:</strong> {{ user.apodo }}</p>
+                                {% endif %}
+                                <p><strong>Email:</strong> {{ user.email }}</p>
+                                <p><strong>Usuario:</strong> {{ user.username }}</p>
+                                {% if user.telefono %}
+                                <p><strong>Teléfono:</strong> {{ user.telefono }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Información de Cuenta -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card-minimal h-100">
+                            <div class="mb-3">
+                                <h5 class="text-gold">📅 Información de Cuenta</h5>
+                            </div>
+                            <div class="text-light">
+                                <p><strong>Miembro desde:</strong> {{ user.date_joined|date:"d M Y" }}</p>
+                                <p><strong>Último acceso:</strong> 
+                                    {% if user.last_login %}
+                                        {{ user.last_login|date:"d M Y H:i" }}
+                                    {% else %}
+                                        Nunca
+                                    {% endif %}
+                                </p>
+                                <p><strong>Estado:</strong> 
+                                    <span class="badge-minimal {% if user.is_active %}active{% else %}inactive{% endif %}">
+                                        {% if user.is_active %}Activo{% else %}Inactivo{% endif %}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Biografía (si existe) -->
+                {% if user.bio %}
+                <div class="card-minimal mb-4">
+                    <div class="mb-3">
+                        <h5 class="text-gold">📖 Biografía</h5>
+                    </div>
+                    <div class="text-light">
+                        <p>{{ user.bio }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Botones de acción -->
+                <div class="text-center mt-4">
+                    <div class="d-grid gap-2 d-md-block">
+                        <!-- Mis citas -->
+                        <a href="{% url 'citas:mis_citas' %}" class="btn-minimal me-2">📅 Ver Mis Citas</a>
+
+                        <!-- Editar perfil -->
+                        <a href="{% url 'usuarios:editar_perfil' %}" class="btn-minimal me-2">⚙️ Gestión de Perfil</a>
+
+                        <!-- Servicios (solo para clientes) -->
+                        {% if not user.es_tarotista %}
+                            <a href="{% url 'core:servicios' %}" class="btn-minimal me-2">🔮 Ver Servicios</a>
+                        {% endif %}
+
+                        <!-- Mis reportes -->
+                        <a href="{% url 'core:reportes' %}" class="btn-minimal me-2">📊 Mis Reportes</a>
+
+                        <!-- Panel administrador -->
+                        {% if user.is_staff %}
+                            <a href="/admin/" class="btn-gold">👥 Panel Administrador</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Alerta de perfil incompleto -->
+                {% if not user.first_name or not user.last_name %}
+                <div class="alert-minimal mt-4">
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">⚠️</span>
+                        <span><strong>Perfil incompleto:</strong> Te recomendamos completar tu información personal.</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

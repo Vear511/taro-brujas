@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Título principal -->
+            <div class="text-center mb-5">
+                <h1 class="hero-title">Sobre Nosotras</h1>
+            </div>
+            
+            <!-- Misión -->
+            <div class="card-minimal mb-5">
+                <div class="text-center mb-4">
+                    <h3 class="text-gold">Nuestra Misión</h3>
+                </div>
+                <p class="text-light text-center">
+                    Nuestra misión es ofrecer un espacio de guía espiritual y autoconocimiento a través del tarot y otras prácticas esotéricas, entregando a cada persona una experiencia clara, cercana y respetuosa que le ayude a comprender su presente y tomar decisiones con confianza.
+                </p>
+            </div>
+            
+            <!-- Visión -->
+            <div class="card-minimal mb-5">
+                <div class="text-center mb-4">
+                    <h3 class="text-gold">Nuestra Visión</h3>
+                </div>
+                <p class="text-light text-center">
+                    Nuestra visión es convertirnos en una plataforma de referencia en orientación espiritual online, donde el tarot y la sabiduría ancestral se unan con la tecnología para acompañar a las personas en su crecimiento personal, siempre con ética, empatía y autenticidad.
+                </p>
+            </div>
+            
+            <!-- Tarotistas -->
+            <div class="text-center mb-4">
+                <h3 class="text-gold">Conoce a nuestras tarotistas</h3>
+            </div>
+            
+            <div class="row justify-content-center">
+                {% if tarotistas and tarotistas.exists %}
+                    {% for t in tarotistas %}
+                        <div class="col-md-5 col-lg-4 mb-4">
+                            <div class="card-minimal text-center h-100">
+                                <div class="mb-3">
+                                    {% if t.usuario.avatar %}
+                                        <img src="{{ t.usuario.avatar.url }}" alt="{{ t.usuario.username }}" class="rounded-circle mx-auto d-flex align-items-center justify-content-center center-120" style="object-fit:cover; width:120px; height:120px;">
+                                    {% else %}
+                                        <div class="placeholder-image bg-dark border-minimal rounded-circle mx-auto d-flex align-items-center justify-content-center center-120">
+                                            <span class="icon-large">🔮</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <h4 class="text-gold mb-3">{{ t.usuario.username }}</h4>
+                                <p class="text-light">
+                                    {{ t.usuario.bio|default:'Esta biografía se llenará próximamente.' }}
+                                </p>
+                                {% if t.usuario.bio and t.usuario.bio|length > 150 %}
+                                    <p class="text-light mt-3 small">(Continúa en su perfil)</p>
+                                {% endif %}
+                                <div class="mt-3">
+                                    <a href="{% url 'tarotistas:perfil_tarotista' t.id %}" class="btn btn-outline-light btn-sm">Ver perfil</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="card-minimal text-center p-5">
+                            <h4 class="text-gold">Aún no hay tarotistas registradas</h4>
+                            <p class="text-light">Estamos incorporando profesionales. Vuelve más tarde para conocerlas.</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+    </main>
+
+    <!-- team card styles moved to static/css/styles.css -->
+{% endblock %}

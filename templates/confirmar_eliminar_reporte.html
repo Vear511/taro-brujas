@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirmar Eliminación - Brujitas{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card-minimal p-5 text-center">
+                <div class="icon-large mb-3">⚠️</div>
+                <h2 class="text-danger mb-3">¿Eliminar Reporte?</h2>
+                
+                <div class="card-minimal-light p-4 mb-4">
+                    <p class="text-light mb-1"><strong>Paciente:</strong> {{ reporte.paciente.get_full_name|default:reporte.paciente.username }}</p>
+                    <p class="text-muted"><strong>Fecha:</strong> {{ reporte.fecha_reporte|date:"d M Y H:i" }}</p>
+                </div>
+
+                <p class="text-muted mb-4">
+                    Esta acción <strong>no se puede deshacer</strong>. El reporte será eliminado permanentemente.
+                </p>
+
+                <form method="post" class="form-inline">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="submit" class="btn-danger py-2 px-4 btn-danger-custom">
+                            🗑️ Sí, Eliminar
+                        </button>
+                        <a href="{% url 'core:detalle_reporte' reporte.id %}" class="btn-minimal py-2 px-4">
+                            ← Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- styles moved to static/css/styles.css -->
+{% endblock %}

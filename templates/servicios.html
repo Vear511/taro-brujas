@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+    <!-- Título principal -->
+    <div class="text-center mb-5">
+        <h1 class="hero-title">✨ Nuestras Lecturas de Tarot</h1>
+        <p class="lead text-light">Elige la lectura que más resuene con tu energía</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <!-- Tarot Básico -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card-minimal h-100 text-center">
+                <div class="mb-4">
+                    <div class="icon-large">🔮</div>
+                    <h4 class="text-gold my-2">Tarot Básico</h4>
+                </div>
+                <div class="mb-4">
+                    <h5 class="text-gold">$15.000</h5>
+                    <p class="text-muted">⏰ 30 minutos</p>
+                </div>
+                <p class="text-light mb-4">Lectura general de 3 cartas para conocer tu presente y futuro cercano.</p>
+                <ul class="list-unstyled text-light text-start mb-4">
+                    <li class="mb-2">✓ Presente, pasado y futuro</li>
+                    <li class="mb-2">✓ Respuestas claras</li>
+                    <li class="mb-2">✓ Guía espiritual</li>
+                </ul>
+                <div class="mt-auto">
+                    {% if user.is_authenticated %}
+                        {% if user.perfil and user.perfil.es_tarotista or user.is_superuser %}
+                            <button class="btn-minimal w-100" disabled>
+                                ⚡ Solo para clientes
+                            </button>
+                        {% else %}
+                            <a  href="{% url 'citas:agendar_cita' %}" class="btn-gold w-100 d-block text-decoration-none">
+                                Agendar Cita
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a  href="{% url 'usuarios:registro' %}" class="btn-minimal w-100 d-block text-decoration-none">Registrarse</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarot Completo -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card-minimal h-100 text-center">
+                <div class="mb-4">
+                    <div class="icon-large">💫</div>
+                    <h4 class="text-gold my-2">Tarot Completo</h4>
+                </div>
+                <div class="mb-4">
+                    <h5 class="text-gold">$25.000</h5>
+                    <p class="text-muted">⏰ 30 minutos</p>
+                </div>
+                <p class="text-light mb-4">Lectura completa de 10 cartas con análisis profundo de tu situación.</p>
+                <ul class="list-unstyled text-light text-start mb-4">
+                    <li class="mb-2">✓ Tirada completa de 10 cartas</li>
+                    <li class="mb-2">✓ Análisis de relaciones</li>
+                    <li class="mb-2">✓ Consejos específicos</li>
+                    <li class="mb-2">✓ Meditación guiada</li>
+                </ul>
+                <div class="mt-auto">
+                    {% if user.is_authenticated %}
+                        {% if user.perfil and user.perfil.es_tarotista or user.is_superuser %}
+                            <button class="btn-minimal w-100" disabled>
+                                ⚡ Solo para clientes
+                            </button>
+                        {% else %}
+                            <a  href="{% url 'citas:agendar_cita' %}" class="btn-gold w-100 d-block text-decoration-none">
+                                Agendar Cita
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a  href="{% url 'usuarios:registro' %}" class="btn-minimal w-100 d-block text-decoration-none">Registrarse</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarot del Amor -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card-minimal h-100 text-center">
+                <div class="mb-4">
+                    <div class="icon-large">❤️</div>
+                    <h4 class="text-gold my-2">Tarot del Amor</h4>
+                </div>
+                <div class="mb-4">
+                    <h5 class="text-gold">$20.000</h5>
+                    <p class="text-muted">⏰ 30 minutos</p>
+                </div>
+                <p class="text-light mb-4">Enfocado en relaciones amorosas, conexiones y vida sentimental.</p>
+                <ul class="list-unstyled text-light text-start mb-4">
+                    <li class="mb-2">✓ Relaciones actuales</li>
+                    <li class="mb-2">✓ Futuro amoroso</li>
+                    <li class="mb-2">✓ Bloqueos emocionales</li>
+                    <li class="mb-2">✓ Compatibilidad</li>
+                </ul>
+                <div class="mt-auto">
+                    {% if user.is_authenticated %}
+                        {% if user.perfil and user.perfil.es_tarotista or user.is_superuser %}
+                            <button class="btn-minimal w-100" disabled>
+                                ⚡ Solo para clientes
+                            </button>
+                        {% else %}
+                            <a  href="{% url 'citas:agendar_cita' %}" class="btn-gold w-100 d-block text-decoration-none">
+                                Agendar Cita
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a  href="{% url 'usuarios:registro' %}" class="btn-minimal w-100 d-block text-decoration-none">Registrarse</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarot Kármico -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card-minimal h-100 text-center">
+                <div class="mb-4">
+                    <div class="icon-large">🌙</div>
+                    <h4 class="text-gold my-2">Tarot Kármico</h4>
+                </div>
+                <div class="mb-4">
+                    <h5 class="text-gold">$30.000</h5>
+                    <p class="text-muted">⏰ 30 minutos</p>
+                </div>
+                <p class="text-light mb-4">Lectura profunda de vidas pasadas y lecciones kármicas.</p>
+                <ul class="list-unstyled text-light text-start mb-4">
+                    <li class="mb-2">✓ Vidas pasadas</li>
+                    <li class="mb-2">✓ Lecciones kármicas</li>
+                    <li class="mb-2">✓ Propósito de vida</li>
+                    <li class="mb-2">✓ Sanación ancestral</li>
+                </ul>
+                <div class="mt-auto">
+                    {% if user.is_authenticated %}
+                        {% if user.perfil and user.perfil.es_tarotista or user.is_superuser %}
+                            <button class="btn-minimal w-100" disabled>
+                                ⚡ Solo para clientes
+                            </button>
+                        {% else %}
+                            <a  href="{% url 'citas:agendar_cita' %}" class="btn-gold w-100 d-block text-decoration-none">
+                                Agendar Cita
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a  href="{% url 'usuarios:registro' %}" class="btn-minimal w-100 d-block text-decoration-none">Registrarse</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card-minimal {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-minimal:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+}
+<!-- styles moved to static/css/styles.css -->
+{% endblock %}

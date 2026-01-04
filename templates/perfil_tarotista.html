@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Panel lateral -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="large-emoji">🔮</div>
+                    <h4>{{ user.username }}</h4>
+                    <p class="text-muted">{{ user.perfil.get_tipo_usuario_display }}</p>
+                    <hr>
+                    <p class="small">
+                        <strong>Email:</strong><br>
+                        {{ user.email }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="col-md-9">
+            <!-- Horario de atención -->
+            <div class="card mb-4">
+                <div class="card-header bg-purple text-white">
+                    <h5>⏰ Mi Horario de Atención</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Establece tu horario disponible:</label>
+                            <textarea name="horario_disponible" class="form-control" rows="4" 
+                                    placeholder="Ej: 
+Lunes a Viernes: 9:00 - 18:00
+Sábados: 10:00 - 14:00
+Domingos: Cerrado">{{ user.perfil.horario_disponible }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-purple">💾 Guardar Horario</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Estadísticas reales -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5>📅 Totales</h5>
+                            <h3 class="text-purple">{{ total_citas }}</h3>
+                            <small class="text-muted">Total</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5>✅ Confirm.</h5>
+                            <h3 class="text-success">{{ citas_confirmadas }}</h3>
+                            <small class="text-muted">Confirmadas</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5>⏳ Pend.</h5>
+                            <h3 class="text-warning">{{ citas_pendientes }}</h3>
+                            <small class="text-muted">Pendientes</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5>🎯 Compl.</h5>
+                            <h3 class="text-info">{{ citas_completadas }}</h3>
+                            <small class="text-muted">Completadas</small>
+                        </div>
+                    </div>
+                </div>
+</div>
+            <!-- Próximas citas REALES -->
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5>📋 Próximas Citas</h5>
+                    <span class="badge bg-purple">{{ proximas_citas.count }} citas</span>
+                </div>
+                <div class="card-body">
+                    {% if proximas_citas %}
+                    <div class="list-group">
+                        {% for cita in proximas_citas %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <strong>{{ cita.usuario.get_full_name|default:cita.usuario.username }}</strong>
+                                    <br>
+                                    <small>{{ cita.servicio.nombre }} - ${{ cita.servicio.precio }}</small>
+                                    <br>
+                                    <small>📅 {{ cita.fecha }} ⏰ {{ cita.hora|time:"H:i" }}</small>
+                                    {% if cita.notas %}
+                                    <div class="mt-2">
+                                        <small class="text-muted">📝 {{ cita.notas }}</small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge {{ cita.estado_clase }} mb-2" id="estado-{{ cita.id }}">
+                                        {{ cita.get_estado_display }}
+                                    </span>
+                                    <br>
+                                    <select class="form-select form-select-sm cambiar-estado" 
+                                            data-cita-id="{{ cita.id }}" 
+                                            class="center-120">
+                                        <option value="pendiente" {% if cita.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                                        <option value="confirmada" {% if cita.estado == 'confirmada' %}selected{% endif %}>Confirmada</option>
+                                        <option value="completada" {% if cita.estado == 'completada' %}selected{% endif %}>Completada</option>
+                                        <option value="cancelada" {% if cita.estado == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div class="icon-large">📭</div>
+                        <h5>No tienes citas agendadas</h5>
+                        <p class="text-muted">Cuando los clientes agenden contigo, aparecerán aquí.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-purple {
+    background-color: #6f42c1 !important;
+}
+.btn-purple {
+    background-color: #6f42c1;
+    color: white;
+    border: none;
+}
+.btn-purple:hover {
+    background-color: #5a2d91;
+    color: white;
+}
+.text-purple {
+    color: #6f42c1 !important;
+}
+<!-- styles moved to static/css/styles.css -->
+
+<script>
+// JavaScript para cambiar estado de citas
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.cambiar-estado').forEach(select => {
+        select.addEventListener('change', function() {
+            const citaId = this.dataset.citaId;
+            const nuevoEstado = this.value;
+            
+            fetch(`/citas/cambiar-estado/${citaId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `estado=${nuevoEstado}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const badge = document.getElementById(`estado-${citaId}`);
+                    badge.textContent = data.nuevo_estado;
+                    badge.className = `badge ${data.clase_badge} mb-2`;
+                } else {
+                    this.value = this.oldValue;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.value = this.oldValue;
+            });
+            
+            this.oldValue = this.value;
+        });
+    });
+});
+</script>
+{% endblock %}

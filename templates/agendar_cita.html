@@ -1,0 +1,364 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h1 class="hero-title">📅 Gestión de Disponibilidad</h1>
+            <p class="text-muted">Selecciona un horario disponible para reservar.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card-minimal p-4">
+                <div id="calendar"></div>
+            </div>
+        </div>
+
+    </div>
+
+<!-- Modal de selección de servicio -->
+<div class="modal fade" id="modalServicio" tabindex="-1" aria-labelledby="modalServicioLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 16px;">
+      <div class="modal-header bg-dark text-gold">
+        <h5 class="modal-title w-100 text-center" id="modalServicioLabel">Selecciona el tipo de servicio</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body bg-dark text-light">
+        <form id="formServicio">
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="basico" style="cursor:pointer;">
+                <div class="icon-large mb-2">🔮</div>
+                <h6 class="text-gold">Tarot Básico</h6>
+                <p class="small text-muted mb-0">30 minutos</p>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="completo" style="cursor:pointer;">
+                <div class="icon-large mb-2">💫</div>
+                <h6 class="text-gold">Tarot Completo</h6>
+                <p class="small text-muted mb-0">30 minutos</p>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="amor" style="cursor:pointer;">
+                <div class="icon-large mb-2">❤️</div>
+                <h6 class="text-gold">Tarot del Amor</h6>
+                <p class="small text-muted mb-0">30 minutos</p>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="karmico" style="cursor:pointer;">
+                <div class="icon-large mb-2">🌙</div>
+                <h6 class="text-gold">Tarot Kármico</h6>
+                <p class="small text-muted mb-0">30 minutos</p>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer bg-dark">
+        <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<style>
+  body {
+    background: #111 !important;
+    color: #fff;
+  }
+  .container {
+    background: #111;
+    border-radius: 18px;
+    box-shadow: 0 2px 24px rgba(0,0,0,0.18);
+    padding-bottom: 32px;
+  }
+  #calendar {
+    min-height: 600px;
+    background: #181818;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+    padding: 16px;
+  }
+  .fc-toolbar-title {
+    color: #d4af37;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  .fc-event {
+    border-radius: 8px !important;
+    font-size: 1rem;
+    font-weight: 500;
+    border: none;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .fc .fc-button {
+    background: #222;
+    color: #d4af37;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  .fc .fc-button:hover, .fc .fc-button:focus {
+    background: #d4af37;
+    color: #222;
+  }
+  .modal-content {
+    background: #181818;
+    color: #fff;
+    border-radius: 16px;
+    border: 1px solid #222;
+  }
+  .modal-header.bg-dark, .modal-footer.bg-dark {
+    background: #222 !important;
+  }
+  .text-gold {
+    color: #d4af37 !important;
+  }
+  .service-option {
+    border: 2px solid transparent;
+    transition: border 0.2s, box-shadow 0.2s;
+  }
+  .service-option:hover, .service-option:focus {
+    border: 2px solid #d4af37;
+    box-shadow: 0 2px 12px rgba(212,175,55,0.15);
+    background: #232323;
+  }
+  .icon-large {
+    font-size: 2.2rem;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+
+<script>
+let eventoSeleccionadoId = null;
+function mostrarModalServicio(eventoId) {
+  eventoSeleccionadoId = eventoId;
+  const modal = new bootstrap.Modal(document.getElementById('modalServicio'));
+  modal.show();
+}
+
+// Manejar selección de servicio
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.service-option').forEach(function(card) {
+    card.addEventListener('click', function() {
+      const servicio = this.dataset.servicio;
+      reservarConServicio(eventoSeleccionadoId, servicio);
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalServicio'));
+      if (modal) modal.hide();
+    });
+  });
+
+  // Inicializar FullCalendar
+  const calendarEl = document.getElementById('calendar');
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'timeGridWeek',
+    locale: 'es',
+    allDaySlot: false,
+    slotDuration: '00:30:00',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'timeGridWeek,timeGridDay,listWeek'
+    },
+    events: '/calendario/horarios/',
+    eventClick: function (info) {
+      if (info.event.extendedProps.is_reserved) {
+        alert('Este horario ya está reservado.');
+        return;
+      }
+      mostrarModalServicio(info.event.id);
+    },
+    eventDidMount: function (info) {
+      if (info.event.extendedProps && info.event.extendedProps.is_reserved) {
+        info.el.style.backgroundColor = '#dc3545';
+        info.el.style.borderColor = '#dc3545';
+      } else {
+        info.el.style.backgroundColor = '#28a745';
+        info.el.style.borderColor = '#28a745';
+      }
+    }
+  });
+  globalThis.calendar = calendar;
+  calendar.render();
+});
+
+function reservarConServicio(eventoId, servicio) {
+  fetch('/calendario/reservar/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: JSON.stringify({
+      evento_id: eventoId,
+      servicio: servicio
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      const event = globalThis.calendar.getEventById(eventoId);
+      if (event) {
+        event.setProp('title', 'Ocupado');
+        event.setExtendedProp('is_reserved', true);
+        event.setProp('color', '#dc3545');
+      }
+      alert('Horario reservado correctamente.');
+    } else {
+      alert(data.error || 'No se pudo reservar.');
+    }
+  });
+}
+</script>
+
+        <!-- Modal de selección de servicio -->
+        <div class="modal fade" id="modalServicio2" tabindex="-1" aria-labelledby="modalServicioLabel2" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px;">
+              <div class="modal-header bg-dark text-gold">
+                <h5 class="modal-title w-100 text-center" id="modalServicioLabel2">Selecciona el tipo de servicio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body bg-dark text-light">
+                <form id="formServicio2">
+                  <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                      <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="basico" style="cursor:pointer;">
+                        <div class="icon-large mb-2">🔮</div>
+                        <h6 class="text-gold">Tarot Básico</h6>
+                        <p class="small text-muted mb-0">30 minutos</p>
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="completo" style="cursor:pointer;">
+                        <div class="icon-large mb-2">💫</div>
+                        <h6 class="text-gold">Tarot Completo</h6>
+                        <p class="small text-muted mb-0">30 minutos</p>
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="amor" style="cursor:pointer;">
+                        <div class="icon-large mb-2">❤️</div>
+                        <h6 class="text-gold">Tarot del Amor</h6>
+                        <p class="small text-muted mb-0">30 minutos</p>
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="karmico" style="cursor:pointer;">
+                        <div class="icon-large mb-2">🌙</div>
+                        <h6 class="text-gold">Tarot Kármico</h6>
+                        <p class="small text-muted mb-0">30 minutos</p>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+        <script>
+        let eventoSeleccionadoId = null;
+        function mostrarModalServicio(eventoId) {
+            eventoSeleccionadoId = eventoId;
+            const modal = new bootstrap.Modal(document.getElementById('modalServicio'));
+            modal.show();
+        }
+
+        // Manejar selección de servicio
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.service-option').forEach(function(card) {
+                card.addEventListener('click', function() {
+                    const servicio = this.dataset.servicio;
+                    reservarConServicio(eventoSeleccionadoId, servicio);
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalServicio'));
+                    if (modal) modal.hide();
+                });
+            });
+        });
+
+        function reservarConServicio(eventoId, servicio) {
+            fetch('/calendario/reservar/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    evento_id: eventoId,
+                    servicio: servicio
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const event = calendar.getEventById(eventoId);
+                    if (event) {
+                        event.setProp('title', 'Ocupado');
+                        event.setExtendedProp('is_reserved', true);
+                        event.setProp('color', '#dc3545');
+                    }
+                    alert('Horario reservado correctamente.');
+                } else {
+                    alert(data.error || 'No se pudo reservar.');
+                }
+            });
+        }
+        </script>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const calendarEl = document.getElementById('calendar');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                locale: 'es',
+                allDaySlot: false,
+                slotDuration: '00:30:00',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'timeGridWeek,timeGridDay,listWeek'
+                },
+                events: '/calendario/horarios/',
+                eventClick: function (info) {
+                    if (info.event.extendedProps.is_reserved) {
+                        alert('Este horario ya está reservado.');
+                        return;
+                    }
+                    mostrarModalServicio(info.event.id);
+                },
+                eventDidMount: function (info) {
+                    if (info.event.extendedProps && info.event.extendedProps.is_reserved) {
+                        info.el.style.backgroundColor = '#dc3545';
+                        info.el.style.borderColor = '#dc3545';
+                    } else {
+                        info.el.style.backgroundColor = '#28a745';
+                        info.el.style.borderColor = '#28a745';
+                    }
+                }
+            });
+            globalThis.calendar = calendar;
+            calendar.render();
+        });
+        </script>
+
+{% endblock %}

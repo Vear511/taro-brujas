@@ -1,0 +1,81 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Gestión de Tarotistas - Brujitas{% endblock %}
+{% block page_title %}🔮 Gestión de Tarotistas{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Agregar Nueva Tarotista</h5>
+            </div>
+            <div class="card-body">
+                <a  href="{% url 'core:agregar_tarotista' %}" class="btn btn-purple">
+                    ➕ Agregar Nueva Tarotista
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Tarotistas Registradas</h5>
+                <span class="badge bg-purple">{{ tarotistas.count }} tarotistas</span>
+            </div>
+            <div class="card-body">
+                {% if tarotistas %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tarotista</th>
+                                <th>Descripción</th>
+                                <th>Disponible</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tarotista in tarotistas %}
+                            <tr>
+                                <td>
+                                    <strong>{{ tarotista.usuario.get_full_name }}</strong>
+                                    <br><small class="text-muted">{{ tarotista.usuario.email }}</small>
+                                </td>
+                                <td>{{ tarotista.descripcion|default:'—' }}</td>
+                                <td>
+                                    <span class="badge {% if tarotista.disponible %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ tarotista.disponible|yesno:"Sí,No" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a  href="{% url 'core:editar_tarotista' tarotista.id %}" class="btn btn-outline-primary">
+                                            Editar
+                                        </a>
+                                        <a  href="{% url 'core:eliminar_tarotista' tarotista.id %}" class="btn btn-outline-danger">
+                                            Eliminar
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <p class="text-muted">No hay tarotistas registradas aún.</p>
+                    <a  href="{% url 'core:agregar_tarotista' %}" class="btn btn-purple">
+                        Agregar la primera tarotista
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
