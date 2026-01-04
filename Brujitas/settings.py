@@ -210,9 +210,12 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "no-reply@brujitas.local"
+
+# 🔴 TEMPORAL – SOLO PARA PRUEBA
+EMAIL_HOST_USER = "brujitas.uoh@gmail.com"
+EMAIL_HOST_PASSWORD = "APP_PASSWORD_SIN_ESPACIOS"
+DEFAULT_FROM_EMAIL = "brujitas.uoh@gmail.com"
+
 
 # --------------------------------------------------
 # DEFAULT
