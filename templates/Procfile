@@ -1,1 +1,0 @@
-web: gunicorn Brujitas.wsgi:application --log-file -
