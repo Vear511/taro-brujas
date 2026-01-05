@@ -151,3 +151,62 @@ def editar_tarotista(request, tarotista_id):
             return render(request, 'editar_tarotista.html', {'tarotista': tarotista, 'error': str(e)})
 
     return render(request, 'editar_tarotista.html', {'tarotista': tarotista})
+@login_required
+def lista_clientes(request):
+    """
+    Vista para que la tarotista vea la lista de sus clientes.
+    Solo accesible para usuarias con es_tarotista = True.
+    """
+    # Seguridad extra: solo tarotistas
+    if not getattr(request.user, "es_tarotista", False):
+        messages.error(request, "Solo las tarotistas pueden acceder a la lista de clientes.")
+        return redirect("core:home")
+
+    # Obtenemos el perfil de Tarotista asociado al usuario
+    try:
+        tarotista = request.user.tarotista
+    except Tarotista.DoesNotExist:
+        messages.error(request, "Tu perfil de tarotista aún no está configurado.")
+        return redirect("core:home")
+
+    # Sacamos las citas de esa tarotista y obtenemos clientes únicos
+    # Usamos DISTINCT ON en PostgreSQL (Railway usa Postgres)
+    citas_distintas = (
+        Cita.objects
+        .filter(tarotista=tarotista)
+        .select_related("cliente")
+        .order_by("cliente_id")              # requerido para distinct("cliente_id")
+        .distinct("cliente_id")
+    )
+
+    clientes = [cita.cliente for cita in citas_distintas]
+
+    return render(request, "lista_clientes.html", {
+        "clientes": clientes,
+    })
+
+
+@login_required
+def bloquear_usuario(request, usuario_id):
+    """
+    Permite a la tarotista bloquear / desbloquear un cliente.
+    Usa el campo booleano 'bloqueado' del modelo Usuario.
+    """
+    if not getattr(request.user, "es_tarotista", False):
+        messages.error(request, "Solo las tarotistas pueden bloquear clientes.")
+        return redirect("core:home")
+
+    usuario = get_object_or_404(Usuario, id=usuario_id)
+
+    # Toggle del estado
+    usuario.bloqueado = not getattr(usuario, "bloqueado", False)
+    usuario.save(update_fields=["bloqueado"])
+
+    nombre = usuario.get_full_name() or usuario.username
+
+    if usuario.bloqueado:
+        messages.success(request, f"Has bloqueado a {nombre}. Ya no podrá iniciar sesión.")
+    else:
+        messages.success(request, f"Has desbloqueado a {nombre}. Podrá volver a iniciar sesión.")
+
+    return redirect("tarotistas:lista_clientes")
