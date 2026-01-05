@@ -6,23 +6,30 @@ from django.db import IntegrityError
 from django.db.models import Value, CharField
 from django.db.models.functions import Replace, Lower
 
-from .models import Usuario
-from .utils import validar_rut_detalle, normalize_rut
-from .email_utils import enviar_email_verificacion
-
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.contrib.auth.tokens import default_token_generator
+
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+
+from .models import Usuario
+from .utils import validar_rut_detalle, normalize_rut
+from .email_utils import enviar_email_verificacion
 
 from .password_reset_utils import (
     generar_codigo_verificacion,
     guardar_codigo_en_cache,
     obtener_codigo_de_cache,
     eliminar_codigo_de_cache,
-    enviar_codigo_reset
+    enviar_codigo_reset,
 )
-from django.contrib.auth.hashers import make_password
 
+
+# --------------------------------------------------
+# Activación de cuenta
+# --------------------------------------------------
 
 def activar_cuenta(request, uidb64, token):
     try:
@@ -41,6 +48,10 @@ def activar_cuenta(request, uidb64, token):
     messages.error(request, "El enlace de activación no es válido o expiró.")
     return redirect("usuarios:login")
 
+
+# --------------------------------------------------
+# Registro
+# --------------------------------------------------
 
 def registro(request):
     if request.method == "POST":
@@ -61,6 +72,15 @@ def registro(request):
 
         if password1 != password2:
             errores["password"] = "Las contraseñas no coinciden."
+            return render(request, "registro.html", {"data": data, "errores": errores})
+
+        # ✔ Validar contraseña usando los mismos validadores que en todo el sistema
+        try:
+            # Puedes pasar un usuario temporal si quieres validar similaridad de atributos
+            tmp_user = Usuario(username=username, email=email, first_name=first_name, last_name=last_name)
+            validate_password(password1, user=tmp_user)
+        except ValidationError as e:
+            errores["password"] = " ".join(e.messages)
             return render(request, "registro.html", {"data": data, "errores": errores})
 
         # Validación RUT si fue provisto
@@ -116,14 +136,14 @@ def registro(request):
                 last_name=last_name,
                 rut=rut_norm,          # None si no viene
                 is_active=False,       # requiere activación
-                email_verificado=False
+                email_verificado=False,
             )
             enviar_email_verificacion(usuario, request)
             messages.success(request, "Te enviamos un correo para verificar tu cuenta.")
             return redirect("usuarios:login")
 
         except IntegrityError:
-            errores["general"] = "No fue posible crear la cuenta (usuario/email/rut duplicado)."
+            errores["general"] = "No fue posible crear la cuenta (usuario/email/RUT duplicado)."
             return render(request, "registro.html", {"data": data, "errores": errores})
         except Exception:
             mensajes = "Error al crear la cuenta. Intenta nuevamente."
@@ -132,6 +152,10 @@ def registro(request):
 
     return render(request, "registro.html")
 
+
+# --------------------------------------------------
+# Login / Logout
+# --------------------------------------------------
 
 def login_view(request):
     if request.method == "POST":
@@ -156,6 +180,10 @@ def logout_view(request):
     logout(request)
     return redirect("usuarios:login")
 
+
+# --------------------------------------------------
+# Perfil
+# --------------------------------------------------
 
 @login_required
 def perfil(request):
@@ -186,19 +214,28 @@ def editar_perfil(request):
     return render(request, "gestionperfil.html")
 
 
-# ---------------------------
-# Password reset (código)
-# ---------------------------
+# --------------------------------------------------
+# Password reset con código
+# --------------------------------------------------
+
 def password_reset_request(request):
     if request.method == "POST":
         email = request.POST.get("email")
         if not email:
-            return render(request, "password_reset_request.html", {"error": "Debes ingresar tu correo."})
+            return render(
+                request,
+                "password_reset_request.html",
+                {"error": "Debes ingresar tu correo."},
+            )
 
         try:
             usuario = Usuario.objects.get(email__iexact=email)
         except Usuario.DoesNotExist:
-            return render(request, "password_reset_request.html", {"error": "No existe una cuenta con ese correo."})
+            return render(
+                request,
+                "password_reset_request.html",
+                {"error": "No existe una cuenta con ese correo."},
+            )
 
         code = generar_codigo_verificacion()
         guardar_codigo_en_cache(email, code)
@@ -220,7 +257,11 @@ def password_reset_verify(request):
         if code and code_cache and code == code_cache:
             request.session["reset_verified"] = True
             return redirect("usuarios:password_reset_form")
-        return render(request, "password_reset_verify.html", {"error": "Código incorrecto o expirado."})
+        return render(
+            request,
+            "password_reset_verify.html",
+            {"error": "Código incorrecto o expirado."},
+        )
 
     return render(request, "password_reset_verify.html")
 
@@ -234,23 +275,55 @@ def password_reset_form(request):
     if request.method == "POST":
         password1 = request.POST.get("password1")
         password2 = request.POST.get("password2")
+
         if not password1 or not password2:
-            return render(request, "password_reset_form.html", {"error": "Debes ingresar ambas contraseñas."})
+            return render(
+                request,
+                "password_reset_form.html",
+                {"error": "Debes ingresar ambas contraseñas."},
+            )
+
         if password1 != password2:
-            return render(request, "password_reset_form.html", {"error": "Las contraseñas no coinciden."})
+            return render(
+                request,
+                "password_reset_form.html",
+                {"error": "Las contraseñas no coinciden."},
+            )
 
         try:
             usuario = Usuario.objects.get(email__iexact=email)
+
+            # ✔ Validar contraseña con los mismos validadores del sistema
+            try:
+                validate_password(password1, user=usuario)
+            except ValidationError as e:
+                # Mostramos todos los mensajes juntos
+                return render(
+                    request,
+                    "password_reset_form.html",
+                    {"error": " ".join(e.messages)},
+                )
+
+            # Si todo OK, guardamos la nueva contraseña
             usuario.password = make_password(password1)
             usuario.save()
-            eliminar_codigo_en_cache = eliminar_codigo_de_cache(email)
 
+            # Limpiar cache y sesión
+            eliminar_codigo_de_cache(email)
             request.session.pop("reset_email", None)
             request.session.pop("reset_verified", None)
 
-            messages.success(request, "Contraseña restablecida correctamente. Ya puedes iniciar sesión.")
+            messages.success(
+                request,
+                "Contraseña restablecida correctamente. Ya puedes iniciar sesión.",
+            )
             return redirect("usuarios:login")
+
         except Usuario.DoesNotExist:
-            return render(request, "password_reset_form.html", {"error": "No existe una cuenta con ese correo."})
+            return render(
+                request,
+                "password_reset_form.html",
+                {"error": "No existe una cuenta con ese correo."},
+            )
 
     return render(request, "password_reset_form.html")
