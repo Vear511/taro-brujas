@@ -1,89 +1,52 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Editar perfil</title>
+{% extends 'base.html' %}
 
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-  <style>
-    .avatar-wrap { display:flex; gap:20px; align-items:center; margin-bottom:20px; }
-    .avatar-img { width:120px; height:120px; border-radius:50%; object-fit:cover; border:2px solid #ddd; background:#f3f3f3; }
-    .help { font-size:0.9rem; color:#666; margin-top:6px; }
-    .field { margin-bottom: 12px; }
-    .field input, .field textarea { width:100%; padding:10px; }
-  </style>
-</head>
+{% block title %}Mi Perfil - Tarotista{% endblock %}
 
-<body>
-  <main style="max-width: 700px; margin: 30px auto; padding: 0 16px;">
-    <h1>Editar perfil</h1>
+{% block content %}
+<div class="container mt-5 pt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card-minimal p-4">
+                <div class="text-center mb-4">
+                    <div class="profile-image mb-3">
+                        {% if user.avatar %}
+                            <img src="{{ user.avatar.url }}" alt="Foto de {{ user.username }}" class="rounded-circle" width="120" height="120">
+                        {% else %}
+                            <div class="placeholder-image rounded-circle d-flex align-items-center justify-content-center">
+                                <span class="icon-large text-gold">🔮</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <h2 class="text-gold">{{ user.get_full_name|default:user.username }}</h2>
+                    <p class="text-muted">@{{ user.username }}</p>
+                </div>
 
-    {% if messages %}
-      <div>
-        {% for message in messages %}
-          <p>{{ message }}</p>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    <form method="POST" enctype="multipart/form-data">
-      {% csrf_token %}
-
-      <div class="avatar-wrap">
-        {% if user.avatar %}
-          <img class="avatar-img" src="{{ user.avatar.url }}" alt="Foto de perfil">
-        {% else %}
-          <img class="avatar-img" src="{% static 'img/default-avatar.png' %}" alt="Foto por defecto">
-        {% endif %}
-
-        <div>
-          <label for="id_avatar"><strong>Foto de perfil</strong></label><br>
-          <input type="file" name="avatar" id="id_avatar" accept="image/*" />
-          <div class="help">Formatos recomendados: JPG/PNG. Ideal 500x500.</div>
-        </div>
-      </div>
-
-      <div class="field">
-        <label for="id_first_name">Nombre</label><br>
-        <input type="text" id="id_first_name" name="first_name" value="{{ user.first_name }}">
-      </div>
-
-      <div class="field">
-        <label for="id_last_name">Apellido</label><br>
-        <input type="text" id="id_last_name" name="last_name" value="{{ user.last_name }}">
-      </div>
-
-      <div class="field">
-        <label for="id_apodo">Apodo</label><br>
-        <input type="text" id="id_apodo" name="apodo" value="{{ user.apodo|default:'' }}">
-      </div>
-
-      <div class="field">
-        <label for="id_telefono">Teléfono</label><br>
-        <input type="text" id="id_telefono" name="telefono" value="{{ user.telefono|default:'' }}">
-      </div>
-
-      <div class="field">
-        <label for="id_bio">Bio</label><br>
-        <textarea id="id_bio" name="bio" rows="4">{{ user.bio|default:'' }}</textarea>
-      </div>
-
-      <button type="submit" style="padding:10px 16px;">Guardar cambios</button>
-    </form>
-  </main>
-
-  <script>
-    const fileInput = document.getElementById('id_avatar');
-    const avatarImg = document.querySelector('.avatar-img');
-    if (fileInput && avatarImg) {
-      fileInput.addEventListener('change', (e) => {
-        const f = e.target.files && e.target.files[0];
-        if (!f) return;
-        avatarImg.src = URL.createObjectURL(f);
-      });
-    }
-  </script>
-</body>
-</html>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label text-light">Nombre</label>
+                        <input type="text" name="first_name" class="form-control bg-dark text-light border-minimal" value="{{ user.first_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light">Apellido</label>
+                        <input type="text" name="last_name" class="form-control bg-dark text-light border-minimal" value="{{ user.last_name }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light">Apodo</label>
+                        <input type="text" name="apodo" class="form-control bg-dark text-light border-minimal" value="{{ user.apodo }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light">Imagen de perfil</label>
+                        <input type="file" name="imagen" class="form-control bg-dark text-light border-minimal">
+                        {% if user.avatar %}<small class="text-muted">Sube una nueva para reemplazar la existente.</small>{% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light">Descripción / Biografía</label>
+                        <textarea name="bio" class="form-control bg-dark text-light border-minimal" rows="4">{{ user.bio }}</textarea>
+                    </div>
+                    <button type="submit" class="btn-gold w-100 py-2 mt-3">💾 Guardar Cambios</button>
+                </form>
+            </div>
+    </div>
+</div>
+{% endblock %}
