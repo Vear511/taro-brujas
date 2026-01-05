@@ -1,0 +1,380 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h1 class="hero-title">📅 Gestión de Disponibilidad</h1>
+            <p class="text-muted">Visualiza los horarios y usa el formulario para agregar nuevos bloques.</p>
+        </div>
+    </div>
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Total Horarios</h5>
+                <p class="text-light display-6">{{ total_horarios|default:'0' }}</p> 
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Disponibles</h5>
+                <p class="text-light display-6">{{ horarios_disponibles|default:'0' }}</p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card-minimal text-center p-3">
+                <h5 class="text-gold">Reservados</h5>
+                <p class="text-light display-6">{{ horarios_reservados|default:'0' }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card-minimal p-4">
+                <h4 class="text-gold mb-3">➕ Agregar Nuevo Bloque</h4>
+                
+                <form id="form-disponibilidad" onsubmit="event.preventDefault(); agregarDisponibilidad();">
+                    {% csrf_token %} 
+                    
+                    <div class="mb-3">
+                        <label for="start-time" class="form-label text-light">Inicio (Día y Hora):</label>
+                        <input type="datetime-local" class="form-control" id="start-time" name="start_time" required step="60"> 
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="block-count" class="form-label text-light">Cantidad de bloques (30 min):</label>
+                        <input type="number" class="form-control" id="block-count" name="block_count" min="1" value="1" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="end-time" class="form-label text-light">Fin (Día y Hora):</label>
+                        <input type="datetime-local" class="form-control" id="end-time" name="end_time" required step="60" readonly title="Este valor se calcula automáticamente">
+                        <div class="form-text text-muted mt-1" id="end-display">Fin del último bloque: —</div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-gold w-100">Marcar Disponibilidad</button>
+                    <small class="text-muted mt-2 d-block">El fin se calculará automáticamente 30 minutos después del inicio.</small>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-8 mb-4">
+            <div class="card-minimal p-4">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Debug: raw eventos JSON (hidden) -->
+<pre id="events-debug" style="display:none">{{ horarios_eventos_json|default:'[]' }}</pre>
+
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<script>
+
+    // Cargar eventos desde el backend (horarios disponibles y reservados)
+    let eventos = JSON.parse(document.getElementById('events-debug').textContent);
+    let calendar; 
+    const disponibilidadUrl = "{% url 'core:manejar_disponibilidad_ajax' %}"; 
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    function agregarDisponibilidad() {
+        const startTime = document.getElementById('start-time').value;
+        var blockCount = parseInt(document.getElementById('block-count').value, 10) || 1;
+
+        if (!startTime) {
+            alert('Selecciona la hora de inicio.');
+            return;
+        }
+
+        const startDate = new Date(startTime);
+        if (isNaN(startDate)) {
+            alert('Formato de fecha/hora inválido.');
+            return;
+        }
+
+        // Calculamos fin según cantidad de bloques de 30 minutos
+        const endDate = new Date(startDate.getTime() + blockCount * 30 * 60000);
+
+        // Verifica que la hora de inicio sea al menos ahora+1h (server también debe verificar)
+        const minStart = new Date(new Date().getTime() + 60 * 60000);
+        if (startDate < minStart) {
+            alert('La hora de inicio debe ser al menos 1 hora en el futuro.');
+            return;
+        }
+
+        // Cálculo del día de la semana (0=Domingo ... 6=Sábado)
+        const diaSemana = startDate.getDay();
+
+        // Envío AJAX
+        fetch(disponibilidadUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                start_time: startDate.toISOString(),
+                end_time: endDate.toISOString(),
+                dia_semana: diaSemana,
+                blocks: blockCount,
+                action: 'add'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && Array.isArray(data.events)) {
+                data.events.forEach(ev => {
+                    calendar.addEvent({
+                        id: ev.id,
+                        title: ev.title,
+                        start: ev.start,
+                        end: ev.end,
+                        color: ev.color,
+                        extendedProps: { is_reserved: ev.is_reserved }
+                    });
+                });
+                alert('Horario(s) marcado(s) como disponible.');
+                document.getElementById('form-disponibilidad').reset();
+                var endDisplay = document.getElementById('end-display');
+                if (endDisplay) endDisplay.textContent = 'Fin del último bloque: —';
+            } else {
+                alert('Error al marcar disponibilidad: ' + (data.error || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error en la petición AJAX:', error);
+            alert('Ocurrió un error de conexión.');
+        });
+    }
+
+    // ----------------------------------------------------
+    // INICIALIZACIÓN DE FULLCALENDAR
+    // ----------------------------------------------------
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+
+        // Auto-fill end-time 30 minutes after start-time and restrict selectable starts to future >= now+1h
+        (function() {
+            var startInput = document.getElementById('start-time');
+            var endInput = document.getElementById('end-time');
+            function pad(n){ return n < 10 ? '0' + n : n; }
+
+            function formatForInput(d) {
+                return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+            }
+
+            function formatReadable(d) {
+                return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+            }
+
+            function getMinStart()
+            {
+                var now = new Date();
+                return new Date(now.getTime() + 60 * 60000); // +1 hour
+            }
+
+            function applyMin() {
+                if (!startInput) return;
+                var minStart = getMinStart();
+                // Round minutes to nearest minute (datetime-local supports minutes precision)
+                var minStr = formatForInput(minStart);
+                startInput.min = minStr;
+
+                // If current value is empty or earlier than min, set it to min (prevents selecting invalid times)
+                var blocks = 1;
+                var blockInput = document.getElementById('block-count');
+                if (blockInput) {
+                    var parsed = parseInt(blockInput.value, 10);
+                    if (!isNaN(parsed) && parsed > 0) blocks = parsed;
+                }
+
+                if (!startInput.value) {
+                    startInput.value = minStr;
+                    if (endInput) endInput.value = formatForInput(new Date(minStart.getTime() + blocks * 30 * 60000));
+                    var ed = new Date(minStart.getTime() + blocks * 30 * 60000);
+                    var endDisplay = document.getElementById('end-display');
+                    if (endDisplay) endDisplay.textContent = 'Fin del último bloque: ' + formatReadable(ed);
+                } else {
+                    var cur = new Date(startInput.value);
+                    if (isNaN(cur) || cur < minStart) {
+                        startInput.value = minStr;
+                        if (endInput) endInput.value = formatForInput(new Date(minStart.getTime() + blocks * 30 * 60000));
+                        var ed2 = new Date(minStart.getTime() + blocks * 30 * 60000);
+                        var endDisplay2 = document.getElementById('end-display');
+                        if (endDisplay2) endDisplay2.textContent = 'Fin del último bloque: ' + formatReadable(ed2);
+                    } else {
+                        // update end display from current start value
+                        if (endInput) {
+                            var curBlocks = blocks;
+                            var ed3 = new Date(cur.getTime() + curBlocks * 30 * 60000);
+                            endInput.value = formatForInput(ed3);
+                            var endDisplay3 = document.getElementById('end-display');
+                            if (endDisplay3) endDisplay3.textContent = 'Fin del último bloque: ' + formatReadable(ed3);
+                        }
+                    }
+                }
+            }
+
+            if (startInput && endInput) {
+                // apply immediate min and set end
+                applyMin();
+
+                // update end when user changes start
+                startInput.addEventListener('change', function() {
+                    var startVal = startInput.value;
+                    var blocks = 1;
+                    var blockInput = document.getElementById('block-count');
+                    if (blockInput) {
+                        var parsed = parseInt(blockInput.value, 10);
+                        if (!isNaN(parsed) && parsed > 0) blocks = parsed;
+                    }
+                    if (!startVal) return;
+                    var sd = new Date(startVal);
+                    if (isNaN(sd)) return;
+                    var ed = new Date(sd.getTime() + blocks * 30 * 60000);
+                    endInput.value = formatForInput(ed);
+                    var endDisplay = document.getElementById('end-display');
+                    if (endDisplay) endDisplay.textContent = 'Fin del último bloque: ' + formatReadable(ed);
+                });
+
+                var blockInputEl = document.getElementById('block-count');
+                if (blockInputEl) {
+                    blockInputEl.addEventListener('change', function() {
+                        // re-run applyMin to refresh end display and values
+                        applyMin();
+                    });
+                }
+
+                // keep min updated (in case page stays open)
+                setInterval(applyMin, 30 * 1000);
+            } else if (startInput) {
+                // if only start exists, still apply min
+                applyMin();
+                setInterval(applyMin, 30 * 1000);
+            }
+        })();
+
+        // Expose eventos on window so it's inspectable from DevTools console
+            window.eventos = window.eventos || [];
+        try {
+            if (typeof window.eventos === 'string') {
+                window.eventos = JSON.parse(window.eventos);
+            }
+        } catch (e) {
+            console.error('Error parsing eventos JSON:', e, window.eventos);
+            window.eventos = [];
+        }
+        console.info('Calendario: window.eventos loaded', { count: (window.eventos && window.eventos.length) || 0, sample: window.eventos && window.eventos.slice(0,5) });
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            locale: 'es',
+            allDaySlot: false,
+            slotDuration: '00:30:00',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'timeGridWeek,timeGridDay,listWeek'
+            },
+            events: eventos.map(ev => ({
+                ...ev,
+                extendedProps: { is_reserved: ev.is_reserved }
+            })),
+            selectable: false,
+            
+            eventClick: function(info) {
+                if(info.event.title === "Disponible" && !info.event.extendedProps.is_reserved) { 
+                    let confirmar = confirm(`¿Deseas eliminar este horario disponible?\nDesde: ${info.event.startStr.slice(0, 16).replace('T', ' ')}\nHasta: ${info.event.endStr.slice(0, 16).replace('T', ' ')}`);
+                    
+                    if (confirmar) {
+                        fetch(disponibilidadUrl, { 
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrftoken 
+                            },
+                            body: JSON.stringify({
+                                event_id: info.event.id,
+                                action: 'delete'
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if(data.success) {
+                                info.event.remove(); 
+                                alert('Horario eliminado correctamente.');
+                            } else {
+                                alert('Error al eliminar horario: ' + data.error);
+                            }
+                        });
+                    }
+                } else if (info.event.extendedProps.is_reserved) {
+                    alert('Este horario ya está reservado y no puede ser eliminado desde aquí.');
+                }
+            },
+            // El color se define por la propiedad 'color' del evento, no es necesario sobreescribirlo aquí
+        });
+
+        calendar.render();
+    });
+</script>
+
+<style>
+.fc .fc-toolbar-title {
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+
+.fc {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.fc-event {
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+    border: none !important; 
+    padding: 5px;
+}
+
+.card-minimal {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+}
+
+.btn-gold {
+    background-color: #FFD700;
+    border-color: #FFD700;
+    color: #000;
+}
+.btn-gold:hover {
+    background-color: #e5c100;
+    border-color: #e5c100;
+}
+<!-- styles moved to static/css/styles.css -->
+{% endblock %}

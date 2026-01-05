@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Inicio - Consultas de Tarot{% endblock %}
+
+{% block content %}
+<div class="hero-section text-center">
+    <div class="container">
+        <h1 class="hero-title"> Descubre tu Destino con el Tarot</h1>
+        <p class="lead mb-4 text-light">Agenda una consulta presencial y desvela los misterios de tu futuro</p>
+        {% if user.is_authenticated %}
+            <a href="/citas/agendar/" class="btn-gold btn-lg">Agendar Cita</a>
+        {% else %}
+            <a  href="{% url 'usuarios:registro' %}" class="btn-gold btn-lg">Comenzar Ahora</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <!-- Primer bloque: ¿Qué es el Tarot? -->
+        <div class="col-lg-10 mb-5">
+            <div class="card-minimal">
+                <div class="text-center mb-4">
+                    <h3 class="text-gold">¿Qué es el Tarot?</h3>
+                </div>
+                <p class="text-light text-center">
+                    El tarot es un mazo de 78 cartas utilizado para la orientación espiritual, el autoconocimiento y la interpretación de situaciones de la vida. Se divide en 22 Arcanos Mayores, que representan energías universales y aprendizajes profundos, y 56 Arcanos Menores, que reflejan aspectos más cotidianos y prácticos.
+                </p>
+                <p class="text-light text-center mt-3">
+                    Mediante diferentes tiradas, el tarot permite explorar el pasado, comprender el presente y obtener claridad sobre el futuro, funcionando como una guía simbólica y personal.
+                </p>
+            </div>
+        </div>
+
+        <!-- Segundo bloque: ¿Para qué sirve el Tarot? -->
+        <div class="col-lg-10">
+            <div class="card-minimal">
+                <div class="text-center mb-4">
+                    <h3 class="text-gold">¿Para qué sirve el Tarot?</h3>
+                </div>
+                <p class="text-light text-center">
+                    El tarot sirve como una herramienta de orientación y reflexión personal. No predice el futuro de forma exacta, sino que ayuda a comprender mejor el presente, descubrir posibilidades y tomar decisiones con mayor claridad.
+                </p>
+                <p class="text-light text-center mt-3">
+                    Se utiliza para: Explorar el pasado, presente y futuro de una situación - Obtener guía emocional y espiritual en momentos de duda - Favorecer el autoconocimiento y la conexión interior - Reflexionar sobre las opciones y caminos disponibles en la vida.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+<!-- Fuente elegante para tarot -->
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Playfair+Display:wght@400;500;700&display=swap" rel="stylesheet">

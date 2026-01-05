@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear Reporte - Brujitas{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card-minimal p-4">
+                <div class="mb-3">
+                    <a  href="{% url 'core:reportes' %}" class="text-gold text-decoration-none">
+                        ← Volver a Reportes
+                    </a>
+                </div>
+                <h2 class="text-gold mb-4 text-center">📝 Crear Nuevo Reporte</h2>
+
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} mb-3">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <!-- Seleccionar Usuario/Paciente -->
+                    <div class="mb-4">
+                        <label for="paciente_id" class="form-label text-light"><strong>Usuario</strong></label>
+                        <div class="alert-info mb-3">
+                            <p class="text-muted small mb-0">💡 Selecciona el usuario sobre el cual escribirás tu experiencia o reporte.</p>
+                        </div>
+                        {% if pacientes %}
+                        <select id="paciente_id" name="paciente_id" class="form-control bg-dark text-light border-minimal" required>
+                            <option value="">-- Selecciona un usuario --</option>
+                            {% for p in pacientes %}
+                            <option value="{{ p.id }}">{{ p.get_full_name|default:p.username }} ({{ p.username }})</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Si el paciente no aparece, utiliza su nombre de usuario o pide al administrador que lo registre.</small>
+                        {% else %}
+                        <p class="text-muted">No se encontraron pacientes para seleccionar.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Experiencia / Descripción -->
+                    <div class="mb-4">
+                        <label for="experiencia" class="form-label text-light"><strong>Experiencia con el Paciente</strong></label>
+                        <textarea id="experiencia" name="experiencia" class="form-control bg-dark text-light border-minimal" 
+                                  rows="8" placeholder="Describe tu experiencia con este paciente, observaciones, comportamientos, etc." required></textarea>
+                        <small class="text-muted">Sé detallado/a. Esta información es privada y solo tú podrás verla.</small>
+                    </div>
+
+                    <!-- Botones de acción -->
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="submit" class="btn-gold py-2 px-4">
+                            💾 Guardar Reporte
+                        </button>
+                        <a  href="{% url 'core:reportes' %}" class="btn-minimal py-2 px-4">
+                            ❌ Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

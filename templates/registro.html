@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card-minimal p-4">
+                <div class="text-center mb-4">
+                    <h2 class="text-gold">Unirse a la Comunidad</h2>
+                    <p class="text-muted">Crea tu cuenta para comenzar tu journey espiritual</p>
+                </div>
+
+                {% if errores.general %}
+                    <div class="alert alert-danger">{{ errores.general }}</div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <!-- RUT -->
+                    <div class="mb-3">
+                        <label for="rut" class="form-label text-light">RUT</label>
+                        <input type="text" id="rut" name="rut" class="form-control bg-dark text-light border-minimal"
+                               required placeholder="12.345.678-5" value="{{ data.rut|default:'' }}">
+                        {% if errores.rut %}
+                            <span class="text-danger small">{{ errores.rut }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Nombre y Apellido -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label text-light">Nombre</label>
+                            <input type="text" id="first_name" name="first_name" class="form-control bg-dark text-light border-minimal" 
+                                   required placeholder="Tu nombre" value="{{ data.first_name|default:'' }}">
+                            {% if errores.first_name %}
+                                <span class="text-danger small">{{ errores.first_name }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label text-light">Apellido</label>
+                            <input type="text" id="last_name" name="last_name" class="form-control bg-dark text-light border-minimal" 
+                                   required placeholder="Tu apellido" value="{{ data.last_name|default:'' }}">
+                            {% if errores.last_name %}
+                                <span class="text-danger small">{{ errores.last_name }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Usuario -->
+                    <div class="mb-3">
+                           <label for="username" class="form-label text-light">Nombre de usuario</label>
+                           <input type="text" id="username" name="username" class="form-control bg-dark text-light border-minimal" 
+                               required placeholder="Elige un usuario" value="{{ data.username|default:'' }}">
+                        {% if errores.username %}
+                            <span class="text-danger small">{{ errores.username }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-3">
+                           <label for="email" class="form-label text-light">Email</label>
+                           <input type="email" id="email" name="email" class="form-control bg-dark text-light border-minimal" 
+                               required placeholder="tu@email.com" value="{{ data.email|default:'' }}">
+                        {% if errores.email %}
+                            <span class="text-danger small">{{ errores.email }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Contraseña -->
+                    <div class="mb-3">
+                        <label for="password1" class="form-label text-light">
+                            Contraseña
+                            <span class="text-warning small">
+                                (mínimo 10 caracteres, 1 mayúscula, 1 número y 1 carácter especial: !@#$%&*)
+                            </span>
+                        </label>
+                           <input type="password" id="password1" name="password1" class="form-control bg-dark text-light border-minimal" 
+                               required placeholder="Crea una contraseña segura">
+                    </div>
+
+                    <!-- Confirmar Contraseña -->
+                    <div class="mb-3">
+                           <label for="password2" class="form-label text-light">Confirmar contraseña</label>
+                           <input type="password" id="password2" name="password2" class="form-control bg-dark text-light border-minimal" 
+                               required placeholder="Repite tu contraseña">
+                        {% if errores.password %}
+                            <span class="text-danger small">{{ errores.password }}</span>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn-gold w-100 py-2">Crear Cuenta</button>
+                </form>
+
+                <div class="text-center mt-4">
+                    <p class="text-muted">¿Ya tienes cuenta? 
+                        <a  href="{% url 'usuarios:login' %}" class="text-gold text-decoration-none">Inicia sesión aquí</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- styles moved to static/css/styles.css -->
+
+<script>
+// Formato automático de RUT mientras escribes
+document.getElementById('rut').addEventListener('input', function() {
+    let raw = this.value;
+    let valor;
+    // Extrae sólo dígitos y K/k sin usar replace para mejor compatibilidad
+    valor = (raw.match(/[0-9kK]/g) || []).join('').toUpperCase();
+    let cuerpo = valor.slice(0, -1);
+    let dv = valor.slice(-1);
+
+    let cuerpoFormateado = '';
+    while (cuerpo.length > 3) {
+        cuerpoFormateado = '.' + cuerpo.slice(-3) + cuerpoFormateado;
+        cuerpo = cuerpo.slice(0, -3);
+    }
+    cuerpoFormateado = cuerpo + cuerpoFormateado;
+
+    this.value = cuerpoFormateado + (dv ? '-' + dv : '');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Gestión de Usuarios - Brujitas{% endblock %}
+{% block page_title %}👥 Gestión de Usuarios{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Lista de Usuarios Registrados</h5>
+                <span class="badge bg-purple">{{ usuarios.count }} usuarios</span>
+            </div>
+            <div class="card-body">
+                {% if usuarios %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Nombre Completo</th>
+                                <th>Email</th>
+                                <th>Tipo</th>
+                                <th>Fecha Registro</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usuario in usuarios %}
+                            <tr>
+                                <td>{{ usuario.username }}</td>
+                                <td>{{ usuario.get_full_name|default:"No especificado" }}</td>
+                                <td>{{ usuario.email }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if usuario.es_tarotista %}bg-info
+                                        {% elif usuario.is_staff %}bg-warning
+                                        {% else %}bg-secondary{% endif %}">
+                                        {% if usuario.es_tarotista %}Tarotista
+                                        {% elif usuario.is_staff %}Administrador
+                                        {% else %}Cliente
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ usuario.date_joined|date:"d/m/Y" }}</td>
+                                <td>
+                                    <span class="badge {% if usuario.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ usuario.is_active|yesno:"Activo,Inactivo" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a  href="{% url 'core:editar_usuario' usuario.id %}" class="btn btn-outline-primary">
+                                            Editar
+                                        </a>
+                                        <button class="btn btn-outline-danger" 
+                                                onclick="confirmarEliminacion({{ usuario.id }})">
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <p class="text-muted">No hay usuarios registrados aún.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmarEliminacion(usuarioId) {
+    if (confirm('¿Estás seguro de eliminar este usuario?')) {
+        // Aquí irá la lógica para eliminar
+        alert('Funcionalidad de eliminación en desarrollo');
+    }
+}
+</script>
+{% endblock %}

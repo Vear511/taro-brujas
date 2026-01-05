@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card">
+                <div class="card-header text-center bg-purple text-white">
+                    <h1>📅 Mis Citas Agendadas</h1>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5>Sistema de Citas en Desarrollo</h5>
+                        <p>La gestión de citas estará disponible próximamente.</p>
+                    </div>
+
+                    <div class="text-center py-4">
+                        <div class="large-emoji">⏳</div>
+                        <h4 class="mt-3">Próximamente podrás:</h4>
+                        <ul class="list-unstyled mt-3">
+                            <li>✅ Ver todas tus citas agendadas</li>
+                            <li>✅ Gestionar el estado de cada cita</li>
+                            <li>✅ Cancelar o reprogramar citas</li>
+                            <li>✅ Ver detalles de tarotistas y clientes</li>
+                        </ul>
+                    </div>
+
+                    <div class="text-center">
+                        <a  href="{% url 'citas:agendar_cita' %}" class="btn btn-purple me-2">
+                            Agendar Nueva Cita
+                        </a>
+                        <a  href="{% url 'core:home' %}" class="btn btn-outline-purple">
+                            Volver al Inicio
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- styles moved to static/css/styles.css -->
+{% endblock %}
