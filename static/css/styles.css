@@ -1,0 +1,392 @@
+:root {
+    /* Paleta minimalista oscura */
+    --bg-dark: #0a0a0a;
+    --bg-card: #1a1a1a;
+    --text-light: #f0f0f0;
+    --text-muted: #a0a0a0;
+    --accent-purple: #6b46c1;
+    --accent-gold: #d4af37;
+    --border-light: rgba(255,255,255,0.1);
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* Header minimalista */
+.navbar {
+    background-color: var(--bg-card) !important;
+    border-bottom: 1px solid var(--border-light);
+    backdrop-filter: blur(10px);
+}
+
+.navbar-brand {
+    font-weight: 600;
+    color: var(--accent-gold) !important;
+    font-size: 1.5rem;
+}
+
+.nav-link {
+    color: var(--text-light) !important;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+    color: var(--accent-gold) !important;
+}
+
+/* Botones minimalistas */
+.btn-minimal {
+    background: transparent;
+    border: 1px solid var(--accent-purple);
+    color: var(--text-light);
+    padding: 10px 24px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-minimal:hover {
+    background: var(--accent-purple);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-gold {
+    background: var(--accent-gold);
+    color: var(--bg-dark);
+    border: none;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-gold:hover {
+    background: #e6c34d;
+    transform: translateY(-1px);
+    color: var(--bg-dark);
+}
+
+/* Cards minimalistas */
+.card-minimal {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 2rem;
+    backdrop-filter: blur(10px);
+}
+
+/* Hero section */
+.hero-section {
+    background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a2e 100%);
+    padding: 8rem 0;
+    text-align: center;
+}
+
+.hero-title {
+    font-size: 4rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(45deg, var(--text-light), var(--accent-gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1.2;
+}
+
+/* Utilidades */
+.text-gold { color: var(--accent-gold); }
+.text-purple { color: var(--accent-purple); }
+.border-minimal { border-color: var(--border-light); }
+
+:root {
+    /* Tus variables existentes... */
+    --font-primary: 'Playfair Display', serif;
+    --font-secondary: 'Crimson Text', serif;
+}
+
+body {
+    font-family: var(--font-secondary);
+    /* resto de tus estilos... */
+}
+
+h1, h2, h3, h4, h5, h6, .hero-title {
+    font-family: var(--font-primary);
+    font-weight: 600;
+}
+
+.navbar-brand {
+    font-family: var(--font-primary);
+    font-weight: 700;
+}
+
+/* Botón de logout alineado */
+.btn-logout {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #f0f0f0;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    margin-left: 10px;
+}
+
+.btn-logout:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #f0f0f0;
+}
+
+/* Alinear items del navbar */
+.navbar-nav.align-items-center {
+    align-items: center;
+}
+
+/* Asegurar que los nav-links tengan la misma altura */
+.navbar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding: 0.5rem 1rem;
+}
+/* Estilos para alert-info en reportes */
+.alert-info {
+    background: rgba(23, 162, 184, 0.1);
+    border: 1px solid rgba(23, 162, 184, 0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #17a2b8;
+}
+
+/* Form controls generales */
+.form-control {
+    padding: 12px 15px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+}
+
+.border-minimal {
+    border: 1px solid var(--border-light);
+}
+
+/* Textarea específico */
+textarea.form-control {
+    resize: vertical;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+/* Cards claros para reportes */
+.card-minimal-light {
+    background: rgba(212, 175, 55, 0.05);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 8px;
+}
+
+/* Badges de estado */
+.badge-minimal {
+    background: rgba(212, 175, 55, 0.12);
+    color: #333333;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    display: inline-block;
+}
+
+.badge-minimal.active {
+    background: #1e7e34; /* darker green */
+    color: #ffffff;
+    border-color: #155724;
+}
+
+.badge-minimal.inactive {
+    background: #a71d2a; /* darker red */
+    color: #ffffff;
+    border-color: #7a141f;
+}
+
+/* Perfil */
+.profile-image img {
+    border: 3px solid rgba(212, 175, 55, 0.3);
+    object-fit: cover;
+}
+
+.placeholder-image {
+    width: 120px;
+    height: 120px;
+    border: 3px solid rgba(212, 175, 55, 0.3);
+    background-color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Form controls generales */
+.form-control {
+    padding: 12px 15px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+}
+
+.border-minimal {
+    border: 1px solid var(--border-light);
+}
+
+textarea.form-control {
+    resize: vertical;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Alertas */
+.alert {
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Quitar subrayado */
+.text-decoration-none {
+    text-decoration: none !important;
+}
+
+/* Classes moved from inline styles in templates */
+.page-main {
+    padding-top: 80px;
+}
+
+.icon-large {
+    font-size: 3rem;
+    color: var(--accent-gold);
+}
+
+.icon-xlarge {
+    font-size: 4rem;
+    color: var(--accent-gold);
+}
+
+.center-120 {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 1rem;
+    display: block;
+}
+
+.danger-link {
+    color: #dc3545;
+}
+
+.btn-danger-custom {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 8px 12px;
+}
+
+.btn-danger-custom:hover {
+    background: #c82333;
+}
+
+.form-inline {
+    display: inline;
+}
+
+.placeholder-emoji {
+    display: inline-block;
+    font-size: 3rem;
+    color: var(--accent-gold);
+}
+
+.large-emoji {
+    font-size: 4rem;
+}
+
+/* Table and hover styles used in reportes.html */
+.table-dark {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
+}
+.table-dark th, .table-dark td {
+    color: var(--text-light);
+    vertical-align: middle;
+}
+.table-hover tbody tr:hover {
+    background-color: rgba(212, 175, 55, 0.1);
+}
+
+/* Admin panel styles (moved from base_admin.html) */
+.sidebar {
+    min-height: 100vh;
+    background: #2c3e50;
+}
+.sidebar .nav-link {
+    color: #ecf0f1;
+}
+.sidebar .nav-link:hover {
+    background: #34495e;
+}
+.admin-header {
+    background: var(--accent-purple);
+}
+
+/* Text danger helper */
+.text-danger {
+    color: #dc3545;
+}
+
+/* FullCalendar customizations */
+.fc .fc-toolbar-title {
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+.fc {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+}
+.fc-event {
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+    border: none !important;
+    padding: 5px;
+}
+
+/* Card hover used in services */
+.card-minimal {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card-minimal:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+}
+
+/* Purple accent utilities used across admin and tarotista views */
+.bg-purple {
+    background: linear-gradient(135deg, var(--accent-purple), #8a63d2);
+}
+.text-purple { color: var(--accent-purple); }
+.btn-purple {
+    background: linear-gradient(135deg, var(--accent-purple), #8a63d2);
+    border: none;
+    color: #fff;
+}
+.btn-purple:hover { background: #5a32a3; }
