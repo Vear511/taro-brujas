@@ -47,11 +47,6 @@
                                         <tr>
                                             <!-- Fecha + hora -->
                                             <td>
-                                                {# 
-                                                   Intentamos usar distintos posibles campos.
-                                                   Si tu modelo tiene fecha/hora en otros nombres,
-                                                   puedes ajustarlo aquí. 
-                                                #}
                                                 {% if cita.fecha and cita.hora %}
                                                     {{ cita.fecha|date:"d/m/Y" }} {{ cita.hora|time:"H:i" }}
                                                 {% elif cita.fecha_hora %}
