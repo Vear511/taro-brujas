@@ -5,7 +5,6 @@ from .models import Usuario
 
 @admin.register(Usuario)
 class UsuarioAdmin(UserAdmin):
-    # Campos que existen en AbstractUser + tus extras actuales
     list_display = (
         "username",
         "email",
@@ -13,22 +12,39 @@ class UsuarioAdmin(UserAdmin):
         "last_name",
         "is_staff",
         "is_active",
+        "bloqueado",
         "es_tarotista",
         "email_verificado",
+        "creado_en",
     )
 
     list_filter = (
         "is_staff",
         "is_superuser",
         "is_active",
+        "bloqueado",
         "es_tarotista",
         "email_verificado",
     )
 
-    search_fields = ("username", "email", "first_name", "last_name")
+    search_fields = ("username", "email", "first_name", "last_name", "rut")
     ordering = ("username",)
 
-    # Agrega tus campos extra al formulario del admin
     fieldsets = UserAdmin.fieldsets + (
-        ("Campos extra", {"fields": ("avatar", "es_tarotista", "email_verificado")}),
+        (
+            "Campos extra",
+            {
+                "fields": (
+                    "rut",
+                    "telefono",
+                    "fecha_nacimiento",
+                    "apodo",
+                    "bio",
+                    "avatar",
+                    "bloqueado",
+                    "es_tarotista",
+                    "email_verificado",
+                )
+            },
+        ),
     )
