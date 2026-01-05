@@ -3,41 +3,72 @@
 {% block title %}Lista de Clientes{% endblock %}
 
 {% block content %}
-{% if user.es_tarotista %}
-<div class="container mt-5">
-    <h1 class="text-center mb-4">Lista de Clientes</h1>
-    <div class="row">
-        {% for cliente in clientes %}
-        <div class="col-md-4 mb-4">
-            <div class="card card-minimal">
-                <div class="card-body">
-                    <h5 class="card-title">{{ cliente.username }}</h5>
-                    <p class="card-text">
-                        <strong>Email:</strong> {{ cliente.email }}<br>
-                        <strong>Nombre:</strong> {{ cliente.first_name }} {{ cliente.last_name }}<br>
-                        <strong>Teléfono:</strong> {{ cliente.telefono }}<br>
-                        <strong>Fecha de Nacimiento:</strong> {{ cliente.fecha_nacimiento }}<br>
-                        <strong>Apodo:</strong> {{ cliente.apodo }}<br>
-                        <strong>Bio:</strong> {{ cliente.bio }}<br>
-                        <strong>Estado:</strong> {% if cliente.bloqueado %}<span class="text-danger">Bloqueado</span>{% else %}<span class="text-success">Activo</span>{% endif %}
-                    </p>
-                    <a  href="{% url 'core:tarotistas:bloquear_usuario' cliente.id %}" class="btn {% if cliente.bloqueado %}btn-success{% else %}btn-danger{% endif %}">
-                        {% if cliente.bloqueado %}Desbloquear{% else %}Bloquear{% endif %}
-                    </a>
-                </div>
+<div class="container mt-5 pt-4">
+    {% if user.es_tarotista %}
+        <div class="card-minimal p-4">
+            <div class="text-center mb-4">
+                <h2 class="text-gold">Clientes de tus lecturas</h2>
+                <p class="text-muted">
+                    Aquí puedes ver a las personas que han agendado contigo
+                    y bloquear/desbloquear su acceso si es necesario.
+                </p>
             </div>
+
+            {% if clientes %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Usuario</th>
+                                <th>Email</th>
+                                <th>Estado</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cliente in clientes %}
+                                <tr>
+                                    <td>
+                                        {{ cliente.get_full_name|default:"(Sin nombre)" }}
+                                    </td>
+                                    <td>{{ cliente.username }}</td>
+                                    <td>{{ cliente.email }}</td>
+                                    <td>
+                                        {% if cliente.bloqueado %}
+                                            <span class="badge bg-danger">Bloqueado</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Activo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'tarotistas:bloquear_usuario' cliente.id %}"
+                                           class="btn btn-sm {% if cliente.bloqueado %}btn-success{% else %}btn-outline-danger{% endif %}">
+                                            {% if cliente.bloqueado %}
+                                                Desbloquear
+                                            {% else %}
+                                                Bloquear
+                                            {% endif %}
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info text-center mb-0">
+                    Aún no tienes clientes asociados a tus citas.
+                </div>
+            {% endif %}
         </div>
-        {% empty %}
-        <div class="col-12">
-            <p class="text-center">No hay clientes registrados.</p>
+    {% else %}
+        <div class="card-minimal p-4">
+            <h2 class="text-center text-gold mb-3">Acceso denegado</h2>
+            <p class="text-center text-muted">
+                Solo las tarotistas pueden acceder a esta página.
+            </p>
         </div>
-        {% endfor %}
-    </div>
+    {% endif %}
 </div>
-{% else %}
-<div class="container mt-5">
-    <h1 class="text-center mb-4">Acceso Denegado</h1>
-    <p class="text-center">Solo las tarotistas pueden acceder a esta página.</p>
-</div>
-{% endif %}
 {% endblock %}
