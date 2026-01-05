@@ -49,8 +49,8 @@
 
                     <!-- Usuario -->
                     <div class="mb-3">
-                           <label for="username" class="form-label text-light">Nombre de usuario</label>
-                           <input type="text" id="username" name="username" class="form-control bg-dark text-light border-minimal" 
+                        <label for="username" class="form-label text-light">Nombre de usuario</label>
+                        <input type="text" id="username" name="username" class="form-control bg-dark text-light border-minimal" 
                                required placeholder="Elige un usuario" value="{{ data.username|default:'' }}">
                         {% if errores.username %}
                             <span class="text-danger small">{{ errores.username }}</span>
@@ -59,8 +59,8 @@
 
                     <!-- Email -->
                     <div class="mb-3">
-                           <label for="email" class="form-label text-light">Email</label>
-                           <input type="email" id="email" name="email" class="form-control bg-dark text-light border-minimal" 
+                        <label for="email" class="form-label text-light">Email</label>
+                        <input type="email" id="email" name="email" class="form-control bg-dark text-light border-minimal" 
                                required placeholder="tu@email.com" value="{{ data.email|default:'' }}">
                         {% if errores.email %}
                             <span class="text-danger small">{{ errores.email }}</span>
@@ -75,15 +75,45 @@
                                 (mínimo 10 caracteres, 1 mayúscula, 1 número y 1 carácter especial: !@#$%&*)
                             </span>
                         </label>
-                           <input type="password" id="password1" name="password1" class="form-control bg-dark text-light border-minimal" 
-                               required placeholder="Crea una contraseña segura">
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                id="password1"
+                                name="password1"
+                                class="form-control bg-dark text-light border-minimal"
+                                required
+                                placeholder="Crea una contraseña segura"
+                            >
+                            <button
+                                type="button"
+                                class="btn btn-outline-light toggle-password"
+                                data-target="password1"
+                            >
+                                👁
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Confirmar Contraseña -->
                     <div class="mb-3">
-                           <label for="password2" class="form-label text-light">Confirmar contraseña</label>
-                           <input type="password" id="password2" name="password2" class="form-control bg-dark text-light border-minimal" 
-                               required placeholder="Repite tu contraseña">
+                        <label for="password2" class="form-label text-light">Confirmar contraseña</label>
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                id="password2"
+                                name="password2"
+                                class="form-control bg-dark text-light border-minimal"
+                                required
+                                placeholder="Repite tu contraseña"
+                            >
+                            <button
+                                type="button"
+                                class="btn btn-outline-light toggle-password"
+                                data-target="password2"
+                            >
+                                👁
+                            </button>
+                        </div>
                         {% if errores.password %}
                             <span class="text-danger small">{{ errores.password }}</span>
                         {% endif %}
@@ -94,7 +124,7 @@
 
                 <div class="text-center mt-4">
                     <p class="text-muted">¿Ya tienes cuenta? 
-                        <a  href="{% url 'usuarios:login' %}" class="text-gold text-decoration-none">Inicia sesión aquí</a>
+                        <a href="{% url 'usuarios:login' %}" class="text-gold text-decoration-none">Inicia sesión aquí</a>
                     </p>
                 </div>
             </div>
@@ -105,23 +135,40 @@
 <!-- styles moved to static/css/styles.css -->
 
 <script>
-// Formato automático de RUT mientras escribes
-document.getElementById('rut').addEventListener('input', function() {
-    let raw = this.value;
-    let valor;
-    // Extrae sólo dígitos y K/k sin usar replace para mejor compatibilidad
-    valor = (raw.match(/[0-9kK]/g) || []).join('').toUpperCase();
-    let cuerpo = valor.slice(0, -1);
-    let dv = valor.slice(-1);
+document.addEventListener('DOMContentLoaded', function() {
+    // Formato automático de RUT mientras escribes
+    const rutInput = document.getElementById('rut');
+    if (rutInput) {
+        rutInput.addEventListener('input', function() {
+            let raw = this.value;
+            let valor = (raw.match(/[0-9kK]/g) || []).join('').toUpperCase();
+            let cuerpo = valor.slice(0, -1);
+            let dv = valor.slice(-1);
 
-    let cuerpoFormateado = '';
-    while (cuerpo.length > 3) {
-        cuerpoFormateado = '.' + cuerpo.slice(-3) + cuerpoFormateado;
-        cuerpo = cuerpo.slice(0, -3);
+            let cuerpoFormateado = '';
+            while (cuerpo.length > 3) {
+                cuerpoFormateado = '.' + cuerpo.slice(-3) + cuerpoFormateado;
+                cuerpo = cuerpo.slice(0, -3);
+            }
+            cuerpoFormateado = cuerpo + cuerpoFormateado;
+
+            this.value = cuerpoFormateado + (dv ? '-' + dv : '');
+        });
     }
-    cuerpoFormateado = cuerpo + cuerpoFormateado;
 
-    this.value = cuerpoFormateado + (dv ? '-' + dv : '');
+    // Toggle de mostrar/ocultar contraseña
+    const toggles = document.querySelectorAll('.toggle-password');
+    toggles.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            if (!input) return;
+
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            this.textContent = isPassword ? '🙈' : '👁';
+        });
+    });
 });
 </script>
 {% endblock %}
