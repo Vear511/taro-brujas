@@ -1,44 +1,45 @@
 """
 Django settings for Brujitas project.
-Local + producción (Railway).
-
-Incluye:
-- DB: DATABASE_URL (Railway) o SQLite (local)
-- Static: WhiteNoise (collectstatic)
-- Email: SendGrid API como EMAIL_BACKEND global (sirve para reset password también)
-- Media: Cloudinary si existe CLOUDINARY_URL, si no carpeta /media (local)
+Configurado para desarrollo local y producción en Railway.
 """
 
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import urllib.parse
+
+# --------------------------------------------------
+# BASE
+# --------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --------------------------------------------------
-# ENV / DEBUG
+# DEBUG / ENV
 # --------------------------------------------------
-DEBUG = os.getenv("DEBUG", "0") == "1"
 
-# Solo cargar .env en local (DEBUG=1)
+DEBUG = os.getenv("DEBUG", "0").strip() == "1"
+
+# Cargar .env SOLO en local
 if DEBUG:
     load_dotenv()
 
 # --------------------------------------------------
-# SECURITY
+# SEGURIDAD
 # --------------------------------------------------
-SECRET_KEY = os.getenv("SECRET_KEY")
+
+SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY no está definida en variables de entorno")
 
 RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
 
-# Si quieres controlar esto por variable:
-# ALLOWED_HOSTS=".railway.app,localhost,127.0.0.1,taro-brujas-production.up.railway.app"
-raw_hosts = os.getenv("ALLOWED_HOSTS", "").strip()
-if raw_hosts:
-    ALLOWED_HOSTS = [h.strip() for h in raw_hosts.split(",") if h.strip()]
-else:
+# ALLOWED_HOSTS puede venir como CSV desde Railway: ".railway.app,localhost,127.0.0.1"
+_allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_env.split(",") if h.strip()]
+
+# fallback seguro (por si no lo configuras)
+if not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".railway.app"]
 
 if RAILWAY_PUBLIC_DOMAIN and RAILWAY_PUBLIC_DOMAIN not in ALLOWED_HOSTS:
@@ -47,6 +48,7 @@ if RAILWAY_PUBLIC_DOMAIN and RAILWAY_PUBLIC_DOMAIN not in ALLOWED_HOSTS:
 # --------------------------------------------------
 # APPS
 # --------------------------------------------------
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -66,6 +68,7 @@ INSTALLED_APPS = [
 # --------------------------------------------------
 # MIDDLEWARE
 # --------------------------------------------------
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -81,13 +84,16 @@ MIDDLEWARE = [
 # --------------------------------------------------
 # URLS / WSGI / ASGI
 # --------------------------------------------------
+
 ROOT_URLCONF = "Brujitas.urls"
+
 WSGI_APPLICATION = "Brujitas.wsgi.application"
 ASGI_APPLICATION = "Brujitas.asgi.application"
 
 # --------------------------------------------------
 # TEMPLATES
 # --------------------------------------------------
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -99,15 +105,22 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+
+                # ✅ NUEVO: roles globales para templates
+                "core.context_processors.user_roles",
             ],
         },
     },
 ]
 
 # --------------------------------------------------
-# DATABASE
+# BASE DE DATOS
 # --------------------------------------------------
+
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
+# Si quieres logs, descomenta:
+# print("RAW DATABASE_URL:", repr(DATABASE_URL))
 
 if DATABASE_URL:
     import dj_database_url
@@ -130,6 +143,7 @@ else:
 # --------------------------------------------------
 # AUTH
 # --------------------------------------------------
+
 AUTH_USER_MODEL = "usuarios.Usuario"
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -143,44 +157,39 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 # --------------------------------------------------
-# I18N / TZ
+# INTERNACIONALIZACIÓN
 # --------------------------------------------------
+
 LANGUAGE_CODE = "es-es"
 TIME_ZONE = "America/Santiago"
 USE_I18N = True
 USE_TZ = True
 
 # --------------------------------------------------
-# STATIC
+# STATIC & MEDIA
 # --------------------------------------------------
+
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-_static_dir = BASE_DIR / "static"
-STATICFILES_DIRS = [_static_dir] if _static_dir.exists() else []
+# En producción, STATICFILES_DIRS puede causar warnings si no existe /static.
+# Si tienes carpeta static en repo, déjalo; si no, comenta.
+STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# --------------------------------------------------
-# MEDIA (Cloudinary en producción)
-# --------------------------------------------------
-CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "").strip()
-
-if CLOUDINARY_URL:
-    INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
-    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
-    MEDIA_URL = "/media/"
-else:
-    MEDIA_URL = "/media/"
-    MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # --------------------------------------------------
-# CSRF / SECURITY (PROD)
+# CSRF / SEGURIDAD PRODUCCIÓN
 # --------------------------------------------------
+
 CSRF_TRUSTED_ORIGINS = [
     "https://*.railway.app",
 ]
 
+# si tu dominio público existe, agréguelo también
 if RAILWAY_PUBLIC_DOMAIN:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RAILWAY_PUBLIC_DOMAIN}")
 
@@ -191,18 +200,18 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
 
 # --------------------------------------------------
-# EMAIL (GLOBAL via SendGrid API)
+# EMAIL (SendGrid recomendado)
 # --------------------------------------------------
+# Nota: tu proyecto ya está usando SendGrid (por logs).
+# Aquí solo dejamos variables para DEFAULT_FROM_EMAIL, etc.
+
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "brujitas.uoh@gmail.com")
+
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "").strip()
-SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "").strip() or "brujitas.uoh@gmail.com"
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", SENDGRID_FROM_EMAIL)
-
-EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
-
-# Esto hace que *cualquier* send_mail() (reset password, confirmaciones, etc.) use SendGrid API
-EMAIL_BACKEND = "usuarios.email_backend.SendGridEmailBackend"
+SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", DEFAULT_FROM_EMAIL)
 
 # --------------------------------------------------
 # DEFAULT
 # --------------------------------------------------
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
