@@ -8,15 +8,30 @@
 
   <link rel="stylesheet" href="{% static 'css/styles.css' %}">
   <style>
-    .avatar-wrap { display:flex; gap:20px; align-items:center; margin-bottom:20px; }
-    .avatar-img { width:120px; height:120px; border-radius:50%; object-fit:cover; border:2px solid #ddd; background:#f3f3f3; }
-    .help { font-size:0.9rem; color:#666; margin-top:6px; }
-    .field { margin-bottom: 12px; }
-    .field input, .field textarea { width:100%; padding:10px; }
+    .avatar-wrap {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .avatar-img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover; /* evita deformación */
+      border: 2px solid #ddd;
+      background: #f3f3f3;
+    }
+    .help {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 6px;
+    }
   </style>
 </head>
 
 <body>
+
   <main style="max-width: 700px; margin: 30px auto; padding: 0 16px;">
     <h1>Editar perfil</h1>
 
@@ -28,6 +43,7 @@
       </div>
     {% endif %}
 
+    <!-- ✅ IMPORTANTE: enctype para subir archivos -->
     <form method="POST" enctype="multipart/form-data">
       {% csrf_token %}
 
@@ -45,29 +61,19 @@
         </div>
       </div>
 
-      <div class="field">
+      <div style="margin-bottom: 12px;">
         <label for="id_first_name">Nombre</label><br>
-        <input type="text" id="id_first_name" name="first_name" value="{{ user.first_name }}">
+        <input type="text" id="id_first_name" name="first_name" value="{{ user.first_name }}" style="width:100%; padding:10px;">
       </div>
 
-      <div class="field">
+      <div style="margin-bottom: 12px;">
         <label for="id_last_name">Apellido</label><br>
-        <input type="text" id="id_last_name" name="last_name" value="{{ user.last_name }}">
+        <input type="text" id="id_last_name" name="last_name" value="{{ user.last_name }}" style="width:100%; padding:10px;">
       </div>
 
-      <div class="field">
-        <label for="id_apodo">Apodo</label><br>
-        <input type="text" id="id_apodo" name="apodo" value="{{ user.apodo|default:'' }}">
-      </div>
-
-      <div class="field">
-        <label for="id_telefono">Teléfono</label><br>
-        <input type="text" id="id_telefono" name="telefono" value="{{ user.telefono|default:'' }}">
-      </div>
-
-      <div class="field">
-        <label for="id_bio">Bio</label><br>
-        <textarea id="id_bio" name="bio" rows="4">{{ user.bio|default:'' }}</textarea>
+      <div style="margin-bottom: 12px;">
+        <label for="id_email">Correo</label><br>
+        <input type="email" id="id_email" name="email" value="{{ user.email }}" style="width:100%; padding:10px;">
       </div>
 
       <button type="submit" style="padding:10px 16px;">Guardar cambios</button>
@@ -75,6 +81,7 @@
   </main>
 
   <script>
+    // Preview opcional al seleccionar imagen
     const fileInput = document.getElementById('id_avatar');
     const avatarImg = document.querySelector('.avatar-img');
     if (fileInput && avatarImg) {
@@ -85,5 +92,6 @@
       });
     }
   </script>
+
 </body>
 </html>

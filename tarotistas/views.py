@@ -1,195 +1,150 @@
-# tarotistas/views.py
-
-from django.contrib import messages
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.http import Http404
-from django.shortcuts import get_object_or_404, redirect, render
-
-from citas.models import Cita
 from usuarios.models import Usuario
-from .forms import TarotistaForm
 from .models import Tarotista
 
 
-def _es_admin(user: Usuario) -> bool:
-    return user.is_staff or user.is_superuser
+@user_passes_test(lambda u: u.is_staff)
+def agregar_tarotista(request):
+    if request.method == 'POST':
+        try:
+            # Crear usuario
+            usuario = Usuario.objects.create_user(
+                username=request.POST['username'],
+                email=request.POST['email'],
+                password=request.POST['password'],
+                first_name=request.POST['first_name'],
+                last_name=request.POST['last_name']
+            )
+
+            # Crear tarotista (SOLO campos existentes)
+            tarotista = Tarotista.objects.create(
+                usuario=usuario,
+                descripcion=request.POST.get('descripcion', ''),
+                disponible=request.POST.get('disponible') == 'true'
+            )
+
+            return redirect('gestion_tarotistas')
+
+        except Exception as e:
+            return render(request, 'agregar_tarotista.html', {
+                'error': f'Error al crear tarotista: {str(e)}'
+            })
+
+    return render(request, 'agregar_tarotista.html')
 
 
-def _es_tarotista(user: Usuario) -> bool:
-    return getattr(user, "es_tarotista", False) and hasattr(user, "tarotista")
-
-
-# -------------------------------------------------------------------
-# LISTADO DE TAROTISTAS (para administración)
-# -------------------------------------------------------------------
-@login_required
-@user_passes_test(_es_admin)
 def lista_tarotistas(request):
-    """
-    Vista de administración: muestra todos los tarotistas registrados.
-    """
-    tarotistas = Tarotista.objects.select_related("usuario").order_by(
-        "usuario__first_name", "usuario__last_name", "usuario__username"
-    )
-    return render(
-        request,
-        "lista_tarotistas.html",
-        {
-            "tarotistas": tarotistas,
-        },
-    )
+    tarotistas = Tarotista.objects.filter(disponible=True)
+    return render(request, 'lista_tarotistas.html', {
+        'tarotistas': tarotistas
+    })
 
 
-# -------------------------------------------------------------------
-# PERFIL TAROTISTA (detalle)
-# -------------------------------------------------------------------
-@login_required
 def perfil_tarotista(request, tarotista_id):
-    """
-    Perfil público/administrativo de un tarotista.
-
-    - El tarotista puede ver su propio perfil.
-    - Un admin/staff puede ver el perfil de cualquier tarotista.
-    """
-    tarotista = get_object_or_404(
-        Tarotista.objects.select_related("usuario"), id=tarotista_id
-    )
-
-    # Permitir ver:
-    #  - el propio tarotista
-    #  - o staff/superuser
-    if request.user != tarotista.usuario and not _es_admin(request.user):
-        raise Http404("No tienes permiso para ver este tarotista.")
-
-    citas = (
-        Cita.objects.filter(tarotista=tarotista)
-        .select_related("usuario")
-        .order_by("-fecha", "-hora_inicio")
-    )
-
-    return render(
-        request,
-        "perfil_tarotista.html",
-        {
-            "tarotista": tarotista,
-            "usuario_perfil": tarotista.usuario,
-            "citas": citas,
-        },
-    )
+    tarotista = get_object_or_404(Tarotista, id=tarotista_id)
+    return render(request, 'perfil_tarotista.html', {
+        'tarotista': tarotista
+    })
 
 
-# -------------------------------------------------------------------
-# EDITAR TAROTISTA (para administración)
-# -------------------------------------------------------------------
 @login_required
-@user_passes_test(_es_admin)
+@user_passes_test(lambda u: hasattr(u, 'tarotista'))
+def lista_clientes(request):
+    clientes = Usuario.objects.exclude(
+        tarotista__isnull=False
+    ).exclude(
+        is_staff=True
+    )
+    return render(request, 'lista_clientes.html', {
+        'clientes': clientes
+    })
+
+
+@login_required
+@user_passes_test(lambda u: hasattr(u, 'tarotista'))
+def bloquear_usuario(request, usuario_id):
+    usuario = get_object_or_404(Usuario, id=usuario_id)
+    usuario.bloqueado = not usuario.bloqueado
+    usuario.save()
+    return redirect('tarotistas:lista_clientes')
+
+
+def calendario(request):
+    print('DEBUG [tarotistas.views.calendario] usuario:', request.user)
+    print('DEBUG [tarotistas.views.calendario] usuario.id:', getattr(request.user, 'id', None))
+    print('DEBUG [tarotistas.views.calendario] usuario.username:', getattr(request.user, 'username', None))
+    print('DEBUG [tarotistas.views.calendario] usuario.email:', getattr(request.user, 'email', None))
+    print('DEBUG [tarotistas.views.calendario] usuario.is_authenticated:', getattr(request.user, 'is_authenticated', None))
+    print('DEBUG [tarotistas.views.calendario] usuario model:', type(request.user))
+    if hasattr(request.user, 'tarotista'):
+        print('DEBUG [tarotistas.views.calendario] tarotista.id:', request.user.tarotista.id)
+        print('DEBUG [tarotistas.views.calendario] tarotista.usuario.id:', request.user.tarotista.usuario.id)
+    else:
+        print('DEBUG [tarotistas.views.calendario] tarotista: NO ASOCIADO')
+
+    import json
+    from core.models import Disponibilidad
+    from django.utils import timezone
+    from datetime import datetime, timedelta
+    eventos = []
+    has_tarotista = hasattr(request.user, 'tarotista')
+    tarotista_id = request.user.tarotista.id if has_tarotista else None
+    if not has_tarotista:
+        from django.contrib import messages
+        messages.error(request, 'Solo tarotistas.')
+        return redirect('core:home')
+    horarios = Disponibilidad.objects.filter(tarotista=request.user.tarotista)
+    today = timezone.now().date()
+    js_today = (today.weekday() + 1) % 7
+    for h in horarios:
+        dias_hasta = (h.dia_semana - js_today) % 7
+        fecha = today + timedelta(days=dias_hasta)
+        start_dt = datetime.combine(fecha, h.hora_inicio)
+        end_dt = datetime.combine(fecha, h.hora_fin)
+        eventos.append({
+            'id': h.id,
+            'title': 'Reservado' if h.reservado else 'Disponible',
+            'start': start_dt.isoformat(),
+            'end': end_dt.isoformat(),
+            'backgroundColor': '#dc3545' if h.reservado else '#28a745'
+        })
+    context = {
+        'horarios_eventos_json': json.dumps(eventos),
+        'total_horarios': horarios.count(),
+        'horarios_disponibles': horarios.filter(reservado=False).count(),
+        'horarios_reservados': horarios.filter(reservado=True).count(),
+        'debug_has_tarotista': has_tarotista,
+        'debug_tarotista_id': tarotista_id,
+    }
+    return render(request, 'calendario.html', context)
+@login_required
+@user_passes_test(lambda u: u.is_staff)
 def editar_tarotista(request, tarotista_id):
     """
-    Edición de información del tarotista (solo admin/staff).
+    Permite a un administrador editar un tarotista existente.
     """
     tarotista = get_object_or_404(Tarotista, id=tarotista_id)
 
-    if request.method == "POST":
-        form = TarotistaForm(request.POST, request.FILES, instance=tarotista)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Tarotista actualizado correctamente.")
-            return redirect("tarotistas:perfil_tarotista", tarotista_id=tarotista.id)
-    else:
-        form = TarotistaForm(instance=tarotista)
+    if request.method == 'POST':
+        try:
+            # Editar campos del usuario
+            usuario = tarotista.usuario
+            usuario.first_name = request.POST.get('first_name', usuario.first_name)
+            usuario.last_name = request.POST.get('last_name', usuario.last_name)
+            usuario.email = request.POST.get('email', usuario.email)
+            if request.POST.get('password'):
+                usuario.set_password(request.POST['password'])
+            usuario.save()
 
-    return render(
-        request,
-        "editar_tarotista.html",
-        {
-            "form": form,
-            "tarotista": tarotista,
-        },
-    )
+            # Editar campos del tarotista
+            tarotista.descripcion = request.POST.get('descripcion', tarotista.descripcion)
+            tarotista.disponible = request.POST.get('disponible') == 'true'
+            tarotista.save()
 
+            return redirect('tarotistas:lista_tarotistas')
 
-# -------------------------------------------------------------------
-# LISTA DE CLIENTES DEL TAROTISTA
-# -------------------------------------------------------------------
-@login_required
-def lista_clientes(request):
-    """
-    Lista de clientes con los que el tarotista ha tenido citas.
-    Solo accesible para usuarios marcados como tarotistas.
-    """
-    if not _es_tarotista(request.user):
-        raise Http404("Solo los tarotistas pueden ver sus clientes.")
+        except Exception as e:
+            return render(request, 'editar_tarotista.html', {'tarotista': tarotista, 'error': str(e)})
 
-    tarotista = request.user.tarotista
-
-    citas = (
-        Cita.objects.filter(tarotista=tarotista)
-        .select_related("usuario")
-        .order_by("-fecha", "-hora_inicio")
-    )
-
-    clientes_dict = {}
-    for cita in citas:
-        if cita.usuario_id and cita.usuario not in clientes_dict:
-            clientes_dict[cita.usuario_id] = cita.usuario
-
-    clientes = list(clientes_dict.values())
-
-    return render(
-        request,
-        "lista_clientes.html",
-        {
-            "clientes": clientes,
-            "tarotista": tarotista,
-        },
-    )
-
-
-# -------------------------------------------------------------------
-# CALENDARIO / DISPONIBILIDAD DEL TAROTISTA
-# -------------------------------------------------------------------
-@login_required
-def calendario(request):
-    """
-    Punto de entrada histórico para el calendario del tarotista.
-
-    Para simplificar, si ya tienes una vista en core (por ejemplo core:calendario),
-    podemos redirigir allí. Si más adelante quieres un calendario propio aquí,
-    se puede implementar.
-    """
-    # Si tienes una vista específica en core para el calendario, redirige:
-    try:
-        from django.urls import reverse
-        from django.shortcuts import redirect
-
-        return redirect("core:calendario")
-    except Exception:
-        # Si no existe esa URL, al menos mostramos una plantilla simple
-        if not _es_tarotista(request.user) and not _es_admin(request.user):
-            raise Http404("No tienes permiso para ver el calendario.")
-
-        return render(request, "calendario.html", {})
-
-
-# -------------------------------------------------------------------
-# BLOQUEAR / DESBLOQUEAR USUARIO
-# -------------------------------------------------------------------
-@login_required
-@user_passes_test(_es_admin)
-def bloquear_usuario(request, usuario_id):
-    """
-    Alterna el estado 'bloqueado' de un usuario.
-    Usado desde las pantallas de administración / lista de clientes.
-    """
-    usuario = get_object_or_404(Usuario, id=usuario_id)
-
-    usuario.bloqueado = not usuario.bloqueado
-    usuario.save(update_fields=["bloqueado"])
-
-    if usuario.bloqueado:
-        messages.success(request, f"El usuario {usuario.username} fue bloqueado.")
-    else:
-        messages.success(request, f"El usuario {usuario.username} fue desbloqueado.")
-
-    return redirect("tarotistas:lista_tarotistas")
-
+    return render(request, 'editar_tarotista.html', {'tarotista': tarotista})
