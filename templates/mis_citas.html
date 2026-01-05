@@ -6,38 +6,151 @@
         <div class="col-lg-10 mx-auto">
             <div class="card">
                 <div class="card-header text-center bg-purple text-white">
-                    <h1>📅 Mis Citas Agendadas</h1>
+                    {% if user.is_authenticated and user.es_tarotista %}
+                        <h1>📅 Citas como Tarotista</h1>
+                    {% else %}
+                        <h1>📅 Mis Citas Agendadas</h1>
+                    {% endif %}
                 </div>
+
                 <div class="card-body">
-                    <div class="alert alert-info">
-                        <h5>Sistema de Citas en Desarrollo</h5>
-                        <p>La gestión de citas estará disponible próximamente.</p>
-                    </div>
 
-                    <div class="text-center py-4">
-                        <div class="large-emoji">⏳</div>
-                        <h4 class="mt-3">Próximamente podrás:</h4>
-                        <ul class="list-unstyled mt-3">
-                            <li>✅ Ver todas tus citas agendadas</li>
-                            <li>✅ Gestionar el estado de cada cita</li>
-                            <li>✅ Cancelar o reprogramar citas</li>
-                            <li>✅ Ver detalles de tarotistas y clientes</li>
-                        </ul>
-                    </div>
+                    {% if citas and citas|length > 0 %}
+                        {% if user.is_authenticated and user.es_tarotista %}
+                            <p class="text-muted text-center">
+                                Aquí puedes ver todas las citas que tienes agendadas con tus clientas, 
+                                ordenadas desde la más próxima.
+                            </p>
+                        {% else %}
+                            <p class="text-muted text-center">
+                                Estas son tus citas agendadas con nuestras tarotistas, 
+                                ordenadas desde la más próxima.
+                            </p>
+                        {% endif %}
 
-                    <div class="text-center">
-                        <a  href="{% url 'citas:agendar_cita' %}" class="btn btn-purple me-2">
-                            Agendar Nueva Cita
-                        </a>
-                        <a  href="{% url 'core:home' %}" class="btn btn-outline-purple">
+                        <div class="table-responsive mt-4">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Fecha y hora</th>
+                                        {% if user.is_authenticated and user.es_tarotista %}
+                                            <th scope="col">Cliente</th>
+                                        {% else %}
+                                            <th scope="col">Tarotista</th>
+                                        {% endif %}
+                                        <th scope="col">Servicio</th>
+                                        <th scope="col">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cita in citas %}
+                                        <tr>
+                                            <!-- Fecha + hora -->
+                                            <td>
+                                                {# 
+                                                   Intentamos usar distintos posibles campos.
+                                                   Si tu modelo tiene fecha/hora en otros nombres,
+                                                   puedes ajustarlo aquí. 
+                                                #}
+                                                {% if cita.fecha and cita.hora %}
+                                                    {{ cita.fecha|date:"d/m/Y" }} {{ cita.hora|time:"H:i" }}
+                                                {% elif cita.fecha_hora %}
+                                                    {{ cita.fecha_hora|date:"d/m/Y H:i" }}
+                                                {% elif cita.disponibilidad %}
+                                                    {{ cita.disponibilidad.fecha|date:"d/m/Y" }}
+                                                    {{ cita.disponibilidad.hora_inicio|time:"H:i" }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Cliente o Tarotista según quién mira -->
+                                            <td>
+                                                {% if user.is_authenticated and user.es_tarotista %}
+                                                    {# Mostramos el cliente #}
+                                                    {% if cita.cliente %}
+                                                        {% if cita.cliente.get_full_name %}
+                                                            {{ cita.cliente.get_full_name }}
+                                                        {% else %}
+                                                            {{ cita.cliente.username }}
+                                                        {% endif %}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                {% else %}
+                                                    {# Mostramos el tarotista #}
+                                                    {% if cita.tarotista %}
+                                                        {# Si tarotista apunta a Usuario #}
+                                                        {% if cita.tarotista.get_full_name %}
+                                                            {{ cita.tarotista.get_full_name }}
+                                                        {% else %}
+                                                            {{ cita.tarotista.username|default:cita.tarotista }}
+                                                        {% endif %}
+                                                    {% elif cita.disponibilidad and cita.disponibilidad.tarotista %}
+                                                        {{ cita.disponibilidad.tarotista }}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Tipo de servicio -->
+                                            <td>
+                                                {% if cita.servicio %}
+                                                    {{ cita.servicio }}
+                                                {% elif cita.tipo_servicio %}
+                                                    {{ cita.tipo_servicio }}
+                                                {% elif cita.disponibilidad and cita.disponibilidad.servicio %}
+                                                    {{ cita.disponibilidad.servicio }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Estado -->
+                                            <td>
+                                                {% if cita.estado %}
+                                                    <span class="badge bg-success">{{ cita.estado }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Agendada</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                    {% else %}
+                        <div class="alert alert-info text-center">
+                            {% if user.is_authenticated and user.es_tarotista %}
+                                <h5>Aún no tienes citas agendadas</h5>
+                                <p class="mb-0">
+                                    Cuando tus clientas agenden contigo, verás tus citas aquí ordenadas por fecha y hora.
+                                </p>
+                            {% else %}
+                                <h5>No tienes citas agendadas</h5>
+                                <p class="mb-0">
+                                    Puedes reservar una sesión de tarot cuando quieras usando el botón de agendar.
+                                </p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    <div class="text-center mt-4">
+                        {% if not user.is_authenticated or not user.es_tarotista %}
+                            <a href="{% url 'citas:agendar_cita' %}" class="btn btn-purple me-2">
+                                Agendar Nueva Cita
+                            </a>
+                        {% endif %}
+                        <a href="{% url 'core:home' %}" class="btn btn-outline-purple">
                             Volver al Inicio
                         </a>
                     </div>
+
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<!-- styles moved to static/css/styles.css -->
 {% endblock %}
