@@ -1,364 +1,288 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-5 pt-4">
-    <div class="row mb-4">
+<div class="container-fluid mt-5 pt-5" style="background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%); min-height: 100vh; position: relative; overflow: hidden;">
+    <!-- Elemento decorativo de fondo -->
+    <div class="bg-decoration"></div>
+    
+    <div class="row mb-5">
         <div class="col-12 text-center">
-            <h1 class="hero-title">📅 Gestión de Disponibilidad</h1>
-            <p class="text-muted">Selecciona un horario disponible para reservar.</p>
+            <h1 class="hero-title display-3 fw-bold text-uppercase" style="color: #d4af37; text-shadow: 0 0 20px rgba(212, 175, 55, 0.8); letter-spacing: 3px; animation: fadeInUp 1s ease-out;">
+                📅 Gestión de Disponibilidad
+            </h1>
+            <p class="lead mt-3" style="font-size: 1.2rem; color: #f5e6b3; text-shadow: 0 2px 6px rgba(0,0,0,0.7);">
+              Selecciona un horario disponible para reservar tu experiencia mística.
+            </p>
+            <hr class="gold-line mx-auto mt-4">
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-8 mb-4">
-            <div class="card-minimal p-4">
-                <div id="calendar"></div>
+    <div class="row justify-content-center">
+        <div class="col-lg-10 mb-5">
+            <div class="card-premium p-5 shadow-lg" style="background: linear-gradient(145deg, #181818 0%, #222 100%); border: 2px solid #d4af37; border-radius: 24px; box-shadow: 0 10px 40px rgba(212, 175, 55, 0.3);">
+                <div id="calendar" class="calendar-premium"></div>
             </div>
         </div>
-
     </div>
 
-<!-- Modal de selección de servicio -->
-<div class="modal fade" id="modalServicio" tabindex="-1" aria-labelledby="modalServicioLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius: 16px;">
-      <div class="modal-header bg-dark text-gold">
-        <h5 class="modal-title w-100 text-center" id="modalServicioLabel">Selecciona el tipo de servicio</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body bg-dark text-light">
-        <form id="formServicio">
-          <div class="row g-3">
-            <div class="col-12 col-md-6">
-              <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="basico" style="cursor:pointer;">
-                <div class="icon-large mb-2">🔮</div>
-                <h6 class="text-gold">Tarot Básico</h6>
-                <p class="small text-muted mb-0">30 minutos</p>
-              </div>
+    <!-- Modal de selección de servicio (Mejorado) -->
+    <div class="modal fade" id="modalServicio" tabindex="-1" aria-labelledby="modalServicioLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content" style="border-radius: 24px; background: linear-gradient(145deg, #181818 0%, #222 100%); border: 2px solid #d4af37; box-shadow: 0 15px 50px rgba(212, 175, 55, 0.4);">
+                <div class="modal-header bg-gradient text-gold text-center py-4">
+                    <h3 class="modal-title w-100 fw-bold" id="modalServicioLabel" style="font-size: 2rem; text-shadow: 0 0 15px rgba(212, 175, 55, 0.8);">
+                        ✨ Selecciona el Tipo de Servicio Místico ✨
+                    </h3>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body bg-dark text-light p-5">
+                    <form id="formServicio">
+                        <div class="row g-4">
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <div class="card service-option h-100 p-4 text-center shadow-lg" data-servicio="basico" style="cursor: pointer; background: linear-gradient(145deg, #232323 0%, #2a2a2a 100%); border: 2px solid transparent; border-radius: 20px; transition: all 0.4s ease; transform: scale(1);">
+                                    <div class="icon-large mb-3" style="font-size: 3rem; animation: pulse 2s infinite;">🔮</div>
+                                    <h5 class="text-gold fw-bold">Tarot Básico</h5>
+                                    <p class="small text-muted mb-2">30 minutos de revelaciones</p>
+                                    <p class="h4 text-gold mb-0 fw-bold" style="text-shadow: 0 0 10px rgba(212, 175, 55, 0.6);">$15.000</p>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <div class="card service-option h-100 p-4 text-center shadow-lg" data-servicio="completo" style="cursor: pointer; background: linear-gradient(145deg, #232323 0%, #2a2a2a 100%); border: 2px solid transparent; border-radius: 20px; transition: all 0.4s ease; transform: scale(1);">
+                                    <div class="icon-large mb-3" style="font-size: 3rem; animation: pulse 2s infinite;">💫</div>
+                                    <h5 class="text-gold fw-bold">Tarot Completo</h5>
+                                    <p class="small text-muted mb-2">30 minutos de profundidad</p>
+                                    <p class="h4 text-gold mb-0 fw-bold" style="text-shadow: 0 0 10px rgba(212, 175, 55, 0.6);">$25.000</p>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <div class="card service-option h-100 p-4 text-center shadow-lg" data-servicio="amor" style="cursor: pointer; background: linear-gradient(145deg, #232323 0%, #2a2a2a 100%); border: 2px solid transparent; border-radius: 20px; transition: all 0.4s ease; transform: scale(1);">
+                                    <div class="icon-large mb-3" style="font-size: 3rem; animation: pulse 2s infinite;">❤️</div>
+                                    <h5 class="text-gold fw-bold">Tarot del Amor</h5>
+                                    <p class="small text-muted mb-2">30 minutos de conexiones</p>
+                                    <p class="h4 text-gold mb-0 fw-bold" style="text-shadow: 0 0 10px rgba(212, 175, 55, 0.6);">$20.000</p>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <div class="card service-option h-100 p-4 text-center shadow-lg" data-servicio="karmico" style="cursor: pointer; background: linear-gradient(145deg, #232323 0%, #2a2a2a 100%); border: 2px solid transparent; border-radius: 20px; transition: all 0.4s ease; transform: scale(1);">
+                                    <div class="icon-large mb-3" style="font-size: 3rem; animation: pulse 2s infinite;">🌙</div>
+                                    <h5 class="text-gold fw-bold">Tarot Kármico</h5>
+                                    <p class="small text-muted mb-2">30 minutos de destino</p>
+                                    <p class="h4 text-gold mb-0 fw-bold" style="text-shadow: 0 0 10px rgba(212, 175, 55, 0.6);">$30.000</p>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-gradient py-4">
+                    <button type="button" class="btn btn-secondary w-100 fw-bold py-3" data-bs-dismiss="modal" style="background: #555; border: none; border-radius: 12px; font-size: 1.1rem;">Cancelar</button>
+                </div>
             </div>
-            <div class="col-12 col-md-6">
-              <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="completo" style="cursor:pointer;">
-                <div class="icon-large mb-2">💫</div>
-                <h6 class="text-gold">Tarot Completo</h6>
-                <p class="small text-muted mb-0">30 minutos</p>
-              </div>
-            </div>
-            <div class="col-12 col-md-6">
-              <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="amor" style="cursor:pointer;">
-                <div class="icon-large mb-2">❤️</div>
-                <h6 class="text-gold">Tarot del Amor</h6>
-                <p class="small text-muted mb-0">30 minutos</p>
-              </div>
-            </div>
-            <div class="col-12 col-md-6">
-              <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="karmico" style="cursor:pointer;">
-                <div class="icon-large mb-2">🌙</div>
-                <h6 class="text-gold">Tarot Kármico</h6>
-                <p class="small text-muted mb-0">30 minutos</p>
-              </div>
-            </div>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer bg-dark">
-        <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Cancelar</button>
-      </div>
+        </div>
     </div>
-  </div>
+<!-- Footer decorativo -->
+<div class="row mt-5">
+    <div class="col-12 text-center">
+        <hr class="gold-line mx-auto mb-4">
+        <p style="font-style: italic; font-size: 1.1rem; color: #f5e6b3; text-shadow: 0 2px 6px rgba(0,0,0,0.7);">
+            ✨ Descubre tu camino con elegancia y misterio ✨
+        </p>
+    </div>
 </div>
-
+</div>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+
 <style>
-  body {
-    background: #111 !important;
-    color: #fff;
-  }
-  .container {
-    background: #111;
-    border-radius: 18px;
-    box-shadow: 0 2px 24px rgba(0,0,0,0.18);
-    padding-bottom: 32px;
-  }
-  #calendar {
-    min-height: 600px;
-    background: #181818;
-    border-radius: 16px;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.12);
-    padding: 16px;
-  }
-  .fc-toolbar-title {
-    color: #d4af37;
-    font-weight: bold;
-    letter-spacing: 1px;
-  }
-  .fc-event {
-    border-radius: 8px !important;
-    font-size: 1rem;
-    font-weight: 500;
-    border: none;
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  }
-  .fc .fc-button {
-    background: #222;
-    color: #d4af37;
-    border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    transition: background 0.2s;
-  }
-  .fc .fc-button:hover, .fc .fc-button:focus {
-    background: #d4af37;
-    color: #222;
-  }
-  .modal-content {
-    background: #181818;
-    color: #fff;
-    border-radius: 16px;
-    border: 1px solid #222;
-  }
-  .modal-header.bg-dark, .modal-footer.bg-dark {
-    background: #222 !important;
-  }
-  .text-gold {
-    color: #d4af37 !important;
-  }
-  .service-option {
-    border: 2px solid transparent;
-    transition: border 0.2s, box-shadow 0.2s;
-  }
-  .service-option:hover, .service-option:focus {
-    border: 2px solid #d4af37;
-    box-shadow: 0 2px 12px rgba(212,175,55,0.15);
-    background: #232323;
-  }
-  .icon-large {
-    font-size: 2.2rem;
-  }
+    body {
+        background: #111 !important;
+        color: #fff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .bg-decoration {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.05) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: -1;
+    }
+    .card-premium {
+        backdrop-filter: blur(20px);
+    }
+    .calendar-premium {
+        min-height: 700px;
+        background: linear-gradient(145deg, #1a1a1a 0%, #222 100%);
+        border-radius: 20px;
+        box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        padding: 20px;
+    }
+    .fc-toolbar-title {
+        color: #d4af37 !important;
+        font-weight: bold !important;
+        letter-spacing: 1px !important;
+        font-size: 1.5rem !important;
+    }
+    .fc-event {
+        border-radius: 12px !important;
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        border: none !important;
+        color: #fff !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        transition: transform 0.2s ease !important;
+    }
+    .fc-event:hover {
+        transform: scale(1.05) !important;
+    }
+    .fc .fc-button {
+        background: linear-gradient(145deg, #222 0%, #333 100%) !important;
+        color: #d4af37 !important;
+        border: 1px solid #d4af37 !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 2px 8px rgba(212, 175, 55, 0.2) !important;
+    }
+    .fc .fc-button:hover, .fc .fc-button:focus {
+        background: linear-gradient(145deg, #d4af37 0%, #b8860b 100%) !important;
+        color: #222 !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4) !important;
+    }
+    .modal-content {
+        background: linear-gradient(145deg, #181818 0%, #222 100%) !important;
+        color: #fff !important;
+        border-radius: 24px !important;
+        border: 2px solid #d4af37 !important;
+        box-shadow: 0 15px 50px rgba(212, 175, 55, 0.4) !important;
+    }
+    .bg-gradient {
+        background: linear-gradient(90deg, #222 0%, #d4af37 50%, #222 100%) !important;
+    }
+    .text-gold {
+        color: #d4af37 !important;
+    }
+    .service-option {
+        border: 2px solid transparent !important;
+        transition: all 0.4s ease !important;
+        transform: scale(1) !important;
+    }
+    .service-option:hover, .service-option:focus {
+        border: 2px solid #d4af37 !important;
+        box-shadow: 0 8px 24px rgba(212, 175, 55, 0.5) !important;
+        background: linear-gradient(145deg, #2a2a2a 0%, #333 100%) !important;
+        transform: scale(1.05) !important;
+    }
+    .icon-large {
+        font-size: 3rem !important;
+        transition: transform 0.3s ease !important;
+    }
+    .service-option:hover .icon-large {
+        transform: scale(1.2) !important;
+    }
+    .gold-line {
+        border: 1px solid #d4af37;
+        width: 100px;
+        opacity: 0.8;
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
 </style>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
-
 <script>
 let eventoSeleccionadoId = null;
+
 function mostrarModalServicio(eventoId) {
-  eventoSeleccionadoId = eventoId;
-  const modal = new bootstrap.Modal(document.getElementById('modalServicio'));
-  modal.show();
+    eventoSeleccionadoId = eventoId;
+    const modal = new bootstrap.Modal(document.getElementById('modalServicio'));
+    modal.show();
 }
 
-// Manejar selección de servicio
+// Manejar selección de servicio y inicializar calendario
 document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.service-option').forEach(function(card) {
-    card.addEventListener('click', function() {
-      const servicio = this.dataset.servicio;
-      reservarConServicio(eventoSeleccionadoId, servicio);
-      const modal = bootstrap.Modal.getInstance(document.getElementById('modalServicio'));
-      if (modal) modal.hide();
+    // Event listeners para opciones de servicio
+    document.querySelectorAll('.service-option').forEach(function(card) {
+        card.addEventListener('click', function() {
+            const servicio = this.dataset.servicio;
+            reservarConServicio(eventoSeleccionadoId, servicio);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalServicio'));
+            if (modal) modal.hide();
+        });
     });
-  });
 
-  // Inicializar FullCalendar
-  const calendarEl = document.getElementById('calendar');
-  const calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'timeGridWeek',
-    locale: 'es',
-    allDaySlot: false,
-    slotDuration: '00:30:00',
-    headerToolbar: {
-      left: 'prev,next today',
-      center: 'title',
-      right: 'timeGridWeek,timeGridDay,listWeek'
-    },
-    events: '/calendario/horarios/',
-    eventClick: function (info) {
-      if (info.event.extendedProps.is_reserved) {
-        alert('Este horario ya está reservado.');
-        return;
-      }
-      mostrarModalServicio(info.event.id);
-    },
-    eventDidMount: function (info) {
-      if (info.event.extendedProps && info.event.extendedProps.is_reserved) {
-        info.el.style.backgroundColor = '#dc3545';
-        info.el.style.borderColor = '#dc3545';
-      } else {
-        info.el.style.backgroundColor = '#28a745';
-        info.el.style.borderColor = '#28a745';
-      }
-    }
-  });
-  globalThis.calendar = calendar;
-  calendar.render();
+    // Inicializar FullCalendar
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        locale: 'es',
+        allDaySlot: false,
+        slotDuration: '00:30:00',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'timeGridWeek,timeGridDay,listWeek'
+        },
+        events: '/calendario/horarios/',
+        eventClick: function (info) {
+            if (info.event.extendedProps.is_reserved) {
+                alert('Este horario ya está reservado.');
+                return;
+            }
+            mostrarModalServicio(info.event.id);
+        },
+        eventDidMount: function (info) {
+            if (info.event.extendedProps && info.event.extendedProps.is_reserved) {
+                info.el.style.backgroundColor = '#dc3545';
+                info.el.style.borderColor = '#dc3545';
+            } else {
+                info.el.style.backgroundColor = '#28a745';
+                info.el.style.borderColor = '#28a745';
+            }
+        }
+    });
+    globalThis.calendar = calendar;
+    calendar.render();
 });
 
 function reservarConServicio(eventoId, servicio) {
-  fetch('/calendario/reservar/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': '{{ csrf_token }}'
-    },
-    body: JSON.stringify({
-      evento_id: eventoId,
-      servicio: servicio
+    fetch('/calendario/reservar/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            evento_id: eventoId,
+            servicio: servicio
+        })
     })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      const event = globalThis.calendar.getEventById(eventoId);
-      if (event) {
-        event.setProp('title', 'Ocupado');
-        event.setExtendedProp('is_reserved', true);
-        event.setProp('color', '#dc3545');
-      }
-      alert('Horario reservado correctamente.');
-    } else {
-      alert(data.error || 'No se pudo reservar.');
-    }
-  });
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const event = globalThis.calendar.getEventById(eventoId);
+            if (event) {
+                event.setProp('title', 'Ocupado');
+                event.setExtendedProp('is_reserved', true);
+                event.setProp('color', '#dc3545');
+            }
+            alert('Horario reservado correctamente.');
+        } else {
+            alert(data.error || 'No se pudo reservar.');
+        }
+    });
 }
 </script>
-
-        <!-- Modal de selección de servicio -->
-        <div class="modal fade" id="modalServicio2" tabindex="-1" aria-labelledby="modalServicioLabel2" aria-hidden="true">
-          <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="border-radius: 16px;">
-              <div class="modal-header bg-dark text-gold">
-                <h5 class="modal-title w-100 text-center" id="modalServicioLabel2">Selecciona el tipo de servicio</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-              </div>
-              <div class="modal-body bg-dark text-light">
-                <form id="formServicio2">
-                  <div class="row g-3">
-                    <div class="col-12 col-md-6">
-                      <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="basico" style="cursor:pointer;">
-                        <div class="icon-large mb-2">🔮</div>
-                        <h6 class="text-gold">Tarot Básico</h6>
-                        <p class="small text-muted mb-0">30 minutos</p>
-                      </div>
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="completo" style="cursor:pointer;">
-                        <div class="icon-large mb-2">💫</div>
-                        <h6 class="text-gold">Tarot Completo</h6>
-                        <p class="small text-muted mb-0">30 minutos</p>
-                      </div>
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="amor" style="cursor:pointer;">
-                        <div class="icon-large mb-2">❤️</div>
-                        <h6 class="text-gold">Tarot del Amor</h6>
-                        <p class="small text-muted mb-0">30 minutos</p>
-                      </div>
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <div class="card card-minimal h-100 p-3 text-center service-option" data-servicio="karmico" style="cursor:pointer;">
-                        <div class="icon-large mb-2">🌙</div>
-                        <h6 class="text-gold">Tarot Kármico</h6>
-                        <p class="small text-muted mb-0">30 minutos</p>
-                      </div>
-                    </div>
-                  </div>
-                </form>
-              </div>
-              <div class="modal-footer bg-dark">
-                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Cancelar</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-        <script>
-        let eventoSeleccionadoId = null;
-        function mostrarModalServicio(eventoId) {
-            eventoSeleccionadoId = eventoId;
-            const modal = new bootstrap.Modal(document.getElementById('modalServicio'));
-            modal.show();
-        }
-
-        // Manejar selección de servicio
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.service-option').forEach(function(card) {
-                card.addEventListener('click', function() {
-                    const servicio = this.dataset.servicio;
-                    reservarConServicio(eventoSeleccionadoId, servicio);
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalServicio'));
-                    if (modal) modal.hide();
-                });
-            });
-        });
-
-        function reservarConServicio(eventoId, servicio) {
-            fetch('/calendario/reservar/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    evento_id: eventoId,
-                    servicio: servicio
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const event = calendar.getEventById(eventoId);
-                    if (event) {
-                        event.setProp('title', 'Ocupado');
-                        event.setExtendedProp('is_reserved', true);
-                        event.setProp('color', '#dc3545');
-                    }
-                    alert('Horario reservado correctamente.');
-                } else {
-                    alert(data.error || 'No se pudo reservar.');
-                }
-            });
-        }
-        </script>
-
-        <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const calendarEl = document.getElementById('calendar');
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridWeek',
-                locale: 'es',
-                allDaySlot: false,
-                slotDuration: '00:30:00',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'timeGridWeek,timeGridDay,listWeek'
-                },
-                events: '/calendario/horarios/',
-                eventClick: function (info) {
-                    if (info.event.extendedProps.is_reserved) {
-                        alert('Este horario ya está reservado.');
-                        return;
-                    }
-                    mostrarModalServicio(info.event.id);
-                },
-                eventDidMount: function (info) {
-                    if (info.event.extendedProps && info.event.extendedProps.is_reserved) {
-                        info.el.style.backgroundColor = '#dc3545';
-                        info.el.style.borderColor = '#dc3545';
-                    } else {
-                        info.el.style.backgroundColor = '#28a745';
-                        info.el.style.borderColor = '#28a745';
-                    }
-                }
-            });
-            globalThis.calendar = calendar;
-            calendar.render();
-        });
-        </script>
 
 {% endblock %}

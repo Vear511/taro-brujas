@@ -48,7 +48,7 @@
                                         </div>
                                     {% endif %}
                                 </div>
-                                <h4 class="text-gold mb-3">{{ t.usuario.username }}</h4>
+                                <h4 class="text-gold mb-3">{{ t.usuario.first_name }} {{ t.usuario.last_name }}</h4>
                                 <p class="text-light">
                                     {{ t.usuario.bio|default:'Esta biografía se llenará próximamente.' }}
                                 </p>

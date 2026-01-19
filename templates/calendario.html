@@ -12,7 +12,7 @@
         <div class="col-md-4 mb-3">
             <div class="card-minimal text-center p-3">
                 <h5 class="text-gold">Total Horarios</h5>
-                <p class="text-light display-6">{{ total_horarios|default:'0' }}</p> 
+                <p class="text-light display-6">{{ total_horarios|default:'0' }}</p>
             </div>
         </div>
         <div class="col-md-4 mb-3">
@@ -28,18 +28,18 @@
             </div>
         </div>
     </div>
-    
+   
     <div class="row">
         <div class="col-lg-4 mb-4">
             <div class="card-minimal p-4">
                 <h4 class="text-gold mb-3">➕ Agregar Nuevo Bloque</h4>
-                
+               
                 <form id="form-disponibilidad" onsubmit="event.preventDefault(); agregarDisponibilidad();">
-                    {% csrf_token %} 
-                    
+                    {% csrf_token %}
+                   
                     <div class="mb-3">
                         <label for="start-time" class="form-label text-light">Inicio (Día y Hora):</label>
-                        <input type="datetime-local" class="form-control" id="start-time" name="start_time" required step="60"> 
+                        <input type="datetime-local" class="form-control" id="start-time" name="start_time" required step="60">
                     </div>
 
                     <div class="mb-3">
@@ -52,7 +52,7 @@
                         <input type="datetime-local" class="form-control" id="end-time" name="end_time" required step="60" readonly title="Este valor se calcula automáticamente">
                         <div class="form-text text-muted mt-1" id="end-display">Fin del último bloque: —</div>
                     </div>
-                    
+                   
                     <button type="submit" class="btn btn-gold w-100">Marcar Disponibilidad</button>
                     <small class="text-muted mt-2 d-block">El fin se calculará automáticamente 30 minutos después del inicio.</small>
                 </form>
@@ -74,11 +74,10 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <script>
-
     // Cargar eventos desde el backend (horarios disponibles y reservados)
     let eventos = JSON.parse(document.getElementById('events-debug').textContent);
-    let calendar; 
-    const disponibilidadUrl = "{% url 'core:manejar_disponibilidad_ajax' %}"; 
+    let calendar;
+    const disponibilidadUrl = "{% url 'core:manejar_disponibilidad_ajax' %}";
 
     function getCookie(name) {
         let cookieValue = null;
@@ -291,6 +290,7 @@
             locale: 'es',
             allDaySlot: false,
             slotDuration: '00:30:00',
+            slotMinHeight: 60,  // Aumenta el tamaño mínimo de las casillas para más espacio
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
@@ -298,20 +298,21 @@
             },
             events: eventos.map(ev => ({
                 ...ev,
+                title: ev.is_reserved ? '❌ Res' : '✅ Disp',  // Cambia título a ícono + abreviatura para legibilidad
                 extendedProps: { is_reserved: ev.is_reserved }
             })),
             selectable: false,
-            
+           
             eventClick: function(info) {
-                if(info.event.title === "Disponible" && !info.event.extendedProps.is_reserved) { 
+                if(info.event.title === "✅ Disp" && !info.event.extendedProps.is_reserved) {  // Actualiza condición para nuevo título
                     let confirmar = confirm(`¿Deseas eliminar este horario disponible?\nDesde: ${info.event.startStr.slice(0, 16).replace('T', ' ')}\nHasta: ${info.event.endStr.slice(0, 16).replace('T', ' ')}`);
-                    
+                   
                     if (confirmar) {
-                        fetch(disponibilidadUrl, { 
+                        fetch(disponibilidadUrl, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRFToken': csrftoken 
+                                'X-CSRFToken': csrftoken
                             },
                             body: JSON.stringify({
                                 event_id: info.event.id,
@@ -321,7 +322,7 @@
                         .then(response => response.json())
                         .then(data => {
                             if(data.success) {
-                                info.event.remove(); 
+                                info.event.remove();
                                 alert('Horario eliminado correctamente.');
                             } else {
                                 alert('Error al eliminar horario: ' + data.error);
@@ -356,8 +357,10 @@
     color: #fff;
     font-weight: 500;
     cursor: pointer;
-    border: none !important; 
+    border: none !important;
     padding: 5px;
+    font-size: 1.1rem;  /* Aumenta tamaño de fuente para mejor legibilidad */
+    line-height: 1.2;   /* Mejora espaciado de línea */
 }
 
 .card-minimal {

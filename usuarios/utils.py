@@ -8,7 +8,7 @@ def validar_rut(rut: str) -> bool:
 
     if not rut:
         return False
-
+    
     rut = rut.replace('.', '').replace('-', '').upper()
 
     if len(rut) < 2:
@@ -49,6 +49,9 @@ def validar_rut_detalle(rut: str):
         return False, 'format'
 
     raw = rut.replace('.', '').replace('-', '').upper()
+
+    if len(raw) < 9:
+        return False, 'length'
 
     if len(raw) < 2:
         return False, 'format'

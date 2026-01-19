@@ -3,7 +3,7 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import IntegrityError
-from django.db.models import Value, CharField
+from django.db.models import Value, CharField, Q
 from django.db.models.functions import Replace, Lower
 
 from django.utils.http import urlsafe_base64_decode
@@ -92,6 +92,8 @@ def registro(request):
                     errores["rut"] = "Formato de RUT inválido. Use 12.345.678-5"
                 elif motivo == "dv":
                     errores["rut"] = "RUT no válido: dígito verificador incorrecto."
+                elif motivo == "length":
+                    errores["rut"] = "El RUT debe tener al menos 9 dígitos."
                 else:
                     errores["rut"] = "RUT inválido."
                 return render(request, "registro.html", {"data": data, "errores": errores})
@@ -159,27 +161,51 @@ def registro(request):
 
 def login_view(request):
     if request.method == "POST":
-        username = request.POST.get("username")
+        username_or_email = request.POST.get("username")
         password = request.POST.get("password")
-        user = authenticate(request, username=username, password=password)
+
+        # Primer intento: usar authenticate() habitual 
+        user = authenticate(request, username=username_or_email, password=password)
 
         if user is not None:
+            # Verificar correo
             if getattr(user, "bloqueado", False):
                 messages.error(request, "Tu cuenta ha sido bloqueada.")
                 return redirect("usuarios:login")
 
             login(request, user)
-            return redirect("core:home")
+            return redirect("core:sobre_nosotras")
+        
+        try:
+            usuario = Usuario.objects.filter(
+                Q(username__iexact=username_or_email) | Q(email__iexact=username_or_email)
+            ).first()
+        except Exception:
+            usuario = None
+
+        if usuario:
+            # Comprueba la contraseña directamente (no activa al usuario)
+            if usuario.check_password(password):
+                # Comprueba bloqueo primero
+                if getattr(usuario, "bloqueado", False):
+                    messages.error(request, "Tu cuenta ha sido bloqueada.")
+                    return redirect("usuarios:login")
+
+                # Si la contraseña es correcta pero el correo aún no fue verificado
+                if not getattr(usuario, "email_verificado", False) or not usuario.is_active:
+                    messages.error(
+                        request,
+                        "Aún no has verificado tu correo electrónico. Revisa tu bandeja de entrada o spam."
+                    )
+                    return redirect("usuarios:login")
 
         messages.error(request, "Usuario o contraseña incorrectos.")
 
     return render(request, "login.html")
 
-
 def logout_view(request):
     logout(request)
     return redirect("usuarios:login")
-
 
 # --------------------------------------------------
 # Perfil
