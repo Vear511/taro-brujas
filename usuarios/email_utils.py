@@ -9,6 +9,55 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 
+def _send_email_via_sendgrid(to_email: str, subject: str, plain_text: str) -> bool:
+    """
+    Envía correo vía SendGrid Web API v3.
+    Requiere:
+      - settings.SENDGRID_API_KEY
+      - settings.SENDGRID_FROM_EMAIL (debe estar verificado en SendGrid)
+    """
+    api_key = getattr(settings, "SENDGRID_API_KEY", "").strip()
+    from_email = getattr(settings, "SENDGRID_FROM_EMAIL", "").strip()
+
+    if not api_key:
+        print("[MAIL][SENDGRID] ERROR: SENDGRID_API_KEY no configurada", flush=True)
+        return False
+
+    if not from_email:
+        print("[MAIL][SENDGRID] ERROR: SENDGRID_FROM_EMAIL no configurada", flush=True)
+        return False
+
+    url = "https://api.sendgrid.com/v3/mail/send"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "personalizations": [{"to": [{"email": to_email}]}],
+        "from": {"email": from_email, "name": "Brujitas"},
+        "subject": subject,
+        "content": [{"type": "text/plain", "value": plain_text}],
+    }
+
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=20)
+        if 200 <= resp.status_code < 300:
+            print(f"[MAIL][SENDGRID] OK -> enviado a {to_email}", flush=True)
+            return True
+
+        print(
+            f"[MAIL][SENDGRID] ERROR status={resp.status_code} body={resp.text[:500]}",
+            flush=True,
+        )
+        return False
+
+    except Exception as e:
+        print("[MAIL][SENDGRID] EXCEPTION:", repr(e), flush=True)
+        traceback.print_exc(file=sys.stdout)
+        sys.stdout.flush()
+        return False
+
 def enviar_email_verificacion(usuario, request) -> bool:
     """
     Envía correo de verificación con link de activación.
@@ -133,55 +182,3 @@ def enviar_email_verificacion(usuario, request) -> bool:
     print(f"[MAIL] HTML generado (primeros 200 chars): {html_message[:200]}...", flush=True)
     print("[MAIL] enviar_email_verificacion() -> SendGrid (HTML estético con botón)", flush=True)
     return _send_email_via_sendgrid(usuario.email, subject, plain_text_message, html_message)
-
-def _send_email_via_sendgrid(to_email: str, subject: str, plain_text: str = None, html_text: str = None) -> bool:
-    """
-    Función auxiliar para enviar email via SendGrid API v3.
-    Soporta texto plano y/o HTML.
-    Retorna True si se envió correctamente, False en caso de error.
-    """
-    api_key = os.getenv('SENDGRID_API_KEY')  # Asegúrate de tener esta variable en Railway
-    if not api_key:
-        print("[MAIL] ERROR: SENDGRID_API_KEY no configurada", flush=True)
-        return False
-
-    url = "https://api.sendgrid.com/v3/mail/send"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
-    # Construye el contenido
-    content = []
-    if plain_text and plain_text.strip():
-        content.append({"type": "text/plain", "value": plain_text.strip()})
-    if html_text and html_text.strip():
-        content.append({"type": "text/html", "value": html_text.strip()})
-
-    if not content:
-        print("[MAIL] ERROR: No hay contenido válido para enviar", flush=True)
-        return False
-
-    # Payload
-    payload = {
-        "personalizations": [
-            {
-                "to": [{"email": to_email}],
-                "subject": subject
-            }
-        ],
-        "from": {"email": "tu-email@dominio.com"},  # Reemplaza con tu email verificado en SendGrid
-        "content": content
-    }
-
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        if response.status_code == 202:
-            print(f"[MAIL] Email enviado exitosamente a {to_email}", flush=True)
-            return True
-        else:
-            print(f"[MAIL] ERROR status={response.status_code} body={response.text}", flush=True)
-            return False
-    except Exception as e:
-        print(f"[MAIL] ERROR de conexión: {str(e)}", flush=True)
-        return False
