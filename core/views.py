@@ -395,28 +395,73 @@ def manejar_disponibilidad_ajax(request):
 
 @require_GET
 def horarios_disponibles_json(request):
+    """Devuelve eventos FullCalendar.
+
+    - Disponibles: se muestran a todos los usuarios (no tarotistas) y se colorean por tarotista.
+    - Ocupados: se muestran solo al cliente dueño de la cita o al tarotista dueño del bloque.
+
+    IMPORTANTE: Este endpoint responde una LISTA (no un dict) porque FullCalendar acepta un array JSON.
+    """
+
+    # Paleta de colores estable por tarotista
+    palette = [
+        '#4e79a7',  # azul
+        '#f28e2b',  # naranjo
+        '#59a14f',  # verde
+        '#b07aa1',  # morado
+        '#76b7b2',  # turquesa
+        '#edc948',  # amarillo
+        '#e15759',  # rojo suave
+        '#9c755f',  # cafe
+        '#bab0ac',  # gris
+    ]
+
+    def color_tarotista(tarotista_id: int) -> str:
+        try:
+            return palette[int(tarotista_id) % len(palette)]
+        except Exception:
+            return '#28a745'
+
     eventos = []
     today = timezone.now().date()
     js_today = (today.weekday() + 1) % 7
+
     user = request.user
     es_tarotista = hasattr(user, 'tarotista')
 
-    libres = Disponibilidad.objects.filter(reservado=False)
+    # === DISPONIBLES ===
+    libres = (Disponibilidad.objects
+              .select_related('tarotista', 'tarotista__usuario')
+              .filter(reservado=False))
+
     for h in libres:
         dias_hasta = (h.dia_semana - js_today) % 7
         fecha = today + timedelta(days=dias_hasta)
         start_dt = datetime.combine(fecha, h.hora_inicio)
         end_dt = datetime.combine(fecha, h.hora_fin)
+
+        tarotista_nombre = None
+        try:
+            tarotista_nombre = h.tarotista.usuario.get_full_name() or h.tarotista.usuario.username
+        except Exception:
+            tarotista_nombre = str(h.tarotista)
+
         eventos.append({
             'id': h.id,
             'title': 'Disponible',
             'start': start_dt.isoformat(),
             'end': end_dt.isoformat(),
-            'color': '#28a745',
-            'is_reserved': False
+            'color': color_tarotista(h.tarotista_id),
+            'is_reserved': False,
+            'tarotista_id': h.tarotista_id,
+            'tarotista_nombre': tarotista_nombre,
         })
 
-    reservados = Disponibilidad.objects.filter(reservado=True)
+    # === OCUPADOS (visibilidad restringida) ===
+    reservados = (Disponibilidad.objects
+                  .select_related('tarotista', 'tarotista__usuario')
+                  .filter(reservado=True))
+
     for h in reservados:
         mostrar = False
 
@@ -427,26 +472,41 @@ def horarios_disponibles_json(request):
         ).first()
 
         if cita:
-            if user.is_authenticated and cita.cliente_id == user.id:
+            if user.is_authenticated and cita.cliente_id == getattr(user, 'id', None):
                 mostrar = True
-            if es_tarotista and h.tarotista_id == user.tarotista.id:
+            if es_tarotista and h.tarotista_id == getattr(user.tarotista, 'id', None):
                 mostrar = True
 
-        if mostrar:
-            dias_hasta = (h.dia_semana - js_today) % 7
-            fecha = today + timedelta(days=dias_hasta)
-            start_dt = datetime.combine(fecha, h.hora_inicio)
-            end_dt = datetime.combine(fecha, h.hora_fin)
-            eventos.append({
-                'id': h.id,
-                'title': 'Ocupado',
-                'start': start_dt.isoformat(),
-                'end': end_dt.isoformat(),
-                'color': '#dc3545',
-                'is_reserved': True
-            })
+        if not mostrar:
+            continue
+
+        dias_hasta = (h.dia_semana - js_today) % 7
+        fecha = today + timedelta(days=dias_hasta)
+        start_dt = datetime.combine(fecha, h.hora_inicio)
+        end_dt = datetime.combine(fecha, h.hora_fin)
+
+        tarotista_nombre = None
+        try:
+            tarotista_nombre = h.tarotista.usuario.get_full_name() or h.tarotista.usuario.username
+        except Exception:
+            tarotista_nombre = str(h.tarotista)
+
+        eventos.append({
+            'id': h.id,
+            'title': 'Ocupado',
+            'start': start_dt.isoformat(),
+            'end': end_dt.isoformat(),
+            'color': '#dc3545',
+            'is_reserved': True,
+            'tarotista_id': h.tarotista_id,
+            'tarotista_nombre': tarotista_nombre,
+        })
 
     return JsonResponse(eventos, safe=False)
+
+
+def toma_de_horas(request):
+    return render(request, 'toma_de_horas.html')
 
 
 def toma_de_horas(request):
