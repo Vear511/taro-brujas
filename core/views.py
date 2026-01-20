@@ -277,11 +277,13 @@ def calendario_disponibilidad_view(request):
 
         eventos.append({
             'id': h.id,
-            'title': 'Reservado' if h.reservado else 'Disponible',
+            'title': 'Disponible',
             'start': start_dt.isoformat(),
             'end': end_dt.isoformat(),
-            'color': '#dc3545' if h.reservado else '#28a745',
-            'is_reserved': h.reservado
+            'color': color_tarotista(h.tarotista_id),
+            'is_reserved': False,
+            'tarotista_id': h.tarotista_id,
+            'tarotista_nombre': nombre_tarotista,
         })
 
     has_tarotista = hasattr(request.user, 'tarotista')
