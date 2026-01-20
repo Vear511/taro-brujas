@@ -412,8 +412,17 @@ def horarios_disponibles_json(request):
             'title': 'Disponible',
             'start': start_dt.isoformat(),
             'end': end_dt.isoformat(),
-            'color': '#28a745',
             'is_reserved': False
+            palette = [
+                '#4e79a7',  # azul
+                '#f28e2b',  # naranjo
+                '#59a14f',  # verde
+                '#b07aa1',  # morado
+                '#76b7b2',  # turquesa
+                '#edc948',  # amarillo
+                '#e15759',  # rojo suave
+                '#9c755f',  # café
+                '#bab0ac',  # gris
         })
 
     reservados = Disponibilidad.objects.filter(reservado=True)
@@ -447,7 +456,10 @@ def horarios_disponibles_json(request):
             })
 
     return JsonResponse(eventos, safe=False)
-
+def color_tarotista(tarotista_id: int) -> str:
+        if not tarotista_id:
+            return '#28a745'
+        return palette[int(tarotista_id) % len(palette)]
 
 def toma_de_horas(request):
     return render(request, 'toma_de_horas.html')
